@@ -6,23 +6,25 @@
 </head>
 <body>
 
-<div id="countdown" style="text-align:center; font-size:30px; margin-top:10px;"></div>
+<div id="countdown" style="text-align:center; font-size:30px;"></div>
 <div id="content"></div>
 
-<script type="module">
-import { db, doc, onSnapshot } from './firebase.js';
+<script src="firebase.js"></script>
 
-// 📌 Get LAC name from URL
+<script>
+console.log("LAC Page Loaded ✅");
+
 const params = new URLSearchParams(window.location.search);
 const lac = params.get("name");
 
 let currentTime = 0;
 
-// 🔁 Listen for real-time updates
-onSnapshot(doc(db, "lacData", lac), (docSnap) => {
-  if (!docSnap.exists()) return;
+// 🔁 Real-time listener
+db.collection("lacData").doc(lac)
+.onSnapshot((doc) => {
+  if (!doc.exists) return;
 
-  const data = docSnap.data();
+  const data = doc.data();
 
   if (data.updatedAt !== currentTime) {
     currentTime = data.updatedAt;
@@ -30,9 +32,8 @@ onSnapshot(doc(db, "lacData", lac), (docSnap) => {
   }
 });
 
-// ⏳ Countdown before update
 function startCountdown(data) {
-  let count = 10;
+  let count = 5;
   const cd = document.getElementById("countdown");
 
   const interval = setInterval(() => {
@@ -47,21 +48,15 @@ function startCountdown(data) {
   }, 1000);
 }
 
-// 📺 Load content (UPDATED HERE)
 function loadContent(data) {
   const div = document.getElementById("content");
   div.innerHTML = "";
 
   if (data.type.includes("image")) {
     const img = document.createElement("img");
-    img.src = data.fileData;   // ✅ IMPORTANT CHANGE
+    img.src = data.fileData;
     img.className = "fullscreen";
     div.appendChild(img);
-  } else {
-    const iframe = document.createElement("iframe");
-    iframe.src = data.fileData;  // ✅ IMPORTANT CHANGE
-    iframe.className = "fullscreen";
-    div.appendChild(iframe);
   }
 }
 </script>
