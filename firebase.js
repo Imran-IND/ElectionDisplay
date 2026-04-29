@@ -1,18 +1,20 @@
 // firebase.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+// 🔥 Your Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDDaXmNZ49QhYkptagma6vRQhHcXmgjhes",
   authDomain: "electiondisplay-daca0.firebaseapp.com",
   projectId: "electiondisplay-daca0",
-  storageBucket: "electiondisplay-daca0.firebasestorage.app",
-  messagingSenderId: "387914551638",
-  appId: "1:387914551638:web:85cd5a2a5538f9efd906f7"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Firestore only (no storage)
 export const db = getFirestore(app);
-export const storage = getStorage(app);
-export { doc, setDoc, getDoc, onSnapshot, deleteDoc, ref, uploadBytes, getDownloadURL };
+
+// Export Firestore functions
+export { doc, setDoc, getDoc, onSnapshot, deleteDoc };
