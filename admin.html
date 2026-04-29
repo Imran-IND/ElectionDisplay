@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+<h2>Upload Result</h2>
+
+<input type="file" id="file"><br><br>
+
+<select id="lac">
+  <option>Lakhipur</option>
+  <option>Udharbond</option>
+  <option>Borkhola</option>
+  <option>Katigorah</option>
+  <option>Silchar</option>
+  <option>Sonai</option>
+  <option>Dholai</option>
+</select><br><br>
+
+<button onclick="previewFile()">Preview</button>
+<button onclick="uploadFile()">Publish</button>
+<button onclick="deleteData()">Delete</button>
+
+<br><br>
+<div id="preview"></div>
+
+</div>
+
+<script type="module">
+import { db, storage, doc, setDoc, deleteDoc, ref, uploadBytes, getDownloadURL } from './firebase.js';
+
+let selectedFile;
+
+window.previewFile = function() {
+  const file = document.getElementById("file").files[0];
+  selectedFile = file;
+
+  const preview = document.getElementById("preview");
+  preview.innerHTML = "";
+
+  if (file.type.includes("image")) {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.style.width = "300px";
+    preview.appendChild(img);
+  } else {
+    preview.innerHTML = "PDF Selected";
+  }
+}
+
+window.uploadFile = async function() {
+  const lac = document.getElementById("lac").value;
+
+  const storageRef = ref(storage, 'files/' + Date.now());
+  await uploadBytes(storageRef, selectedFile);
+  const url = await getDownloadURL(storageRef);
+
+  await setDoc(doc(db, "lacData", lac), {
+    fileUrl: url,
+    type: selectedFile.type,
+    updatedAt: Date.now()
+  });
+
+  alert("Uploaded Successfully");
+}
+
+window.deleteData = async function() {
+  const lac = document.getElementById("lac").value;
+  await deleteDoc(doc(db, "lacData", lac));
+  alert("Deleted");
+}
+</script>
+
+</body>
+</html>

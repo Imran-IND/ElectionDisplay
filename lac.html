@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="countdown"></div>
+<div id="content"></div>
+
+<script type="module">
+import { db, doc, onSnapshot } from './firebase.js';
+
+const params = new URLSearchParams(window.location.search);
+const lac = params.get("name");
+
+let currentTime = 0;
+
+onSnapshot(doc(db, "lacData", lac), (docSnap) => {
+  if (!docSnap.exists()) return;
+
+  const data = docSnap.data();
+
+  if (data.updatedAt !== currentTime) {
+    currentTime = data.updatedAt;
+    startCountdown(data);
+  }
+});
+
+function startCountdown(data) {
+  let count = 10;
+  const cd = document.getElementById("countdown");
+
+  const interval = setInterval(() => {
+    cd.innerText = "Updating in " + count;
+    count--;
+
+    if (count < 0) {
+      clearInterval(interval);
+      cd.innerText = "";
+      loadContent(data);
+    }
+  }, 1000);
+}
+
+function loadContent(data) {
+  const div = document.getElementById("content");
+  div.innerHTML = "";
+
+  if (data.type.includes("image")) {
+    const img = document.createElement("img");
+    img.src = data.fileUrl;
+    img.className = "fullscreen";
+    div.appendChild(img);
+  } else {
+    const iframe = document.createElement("iframe");
+    iframe.src = data.fileUrl;
+    iframe.className = "fullscreen";
+    div.appendChild(iframe);
+  }
+}
+</script>
+
+</body>
+</html>
