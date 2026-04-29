@@ -29,80 +29,60 @@
   <div id="preview"></div>
 </div>
 
-<script type="module">
-import { db, doc, setDoc, deleteDoc } from './firebase.js';
-
+<script src="firebase.js"></script>
+<script>
 let base64Data = "";
 let fileType = "";
 
-// 🔍 PREVIEW FILE
-window.previewFile = function() {
+function previewFile() {
   const file = document.getElementById("file").files[0];
 
   if (!file) {
-    alert("Please select a file first");
+    alert("Select file first");
     return;
   }
 
   fileType = file.type;
 
   const reader = new FileReader();
-
   reader.onload = function(e) {
     base64Data = e.target.result;
 
     const preview = document.getElementById("preview");
     preview.innerHTML = "";
 
-    if (fileType.includes("image")) {
-      const img = document.createElement("img");
-      img.src = base64Data;
-      img.style.width = "300px";
-      img.style.border = "2px solid white";
-      preview.appendChild(img);
-    } else {
-      preview.innerHTML = "<p>PDF selected (preview not shown)</p>";
-    }
+    const img = document.createElement("img");
+    img.src = base64Data;
+    img.style.width = "300px";
+    preview.appendChild(img);
   };
 
   reader.readAsDataURL(file);
-};
+}
 
-// 🚀 UPLOAD DATA (Firestore only)
-window.uploadFile = async function() {
+async function uploadFile() {
   const lac = document.getElementById("lac").value;
 
   if (!base64Data) {
-    alert("Please preview file first");
+    alert("Preview first");
     return;
   }
 
-  try {
-    await setDoc(doc(db, "lacData", lac), {
-      fileData: base64Data,
-      type: fileType,
-      updatedAt: Date.now()
-    });
+  await db.collection("lacData").doc(lac).set({
+    fileData: base64Data,
+    type: fileType,
+    updatedAt: Date.now()
+  });
 
-    alert("✅ Uploaded Successfully");
-  } catch (error) {
-    console.error(error);
-    alert("❌ Upload failed");
-  }
-};
+  alert("Uploaded Successfully");
+}
 
-// 🗑 DELETE DATA
-window.deleteData = async function() {
+async function deleteData() {
   const lac = document.getElementById("lac").value;
 
-  try {
-    await deleteDoc(doc(db, "lacData", lac));
-    alert("🗑 Deleted Successfully");
-  } catch (error) {
-    console.error(error);
-    alert("❌ Delete failed");
-  }
-};
+  await db.collection("lacData").doc(lac).delete();
+  alert("Deleted");
+}
 </script>
 
 </body>
