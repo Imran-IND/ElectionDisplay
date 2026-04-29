@@ -1,18 +1,97 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="style.css">
+  <title>Preview Panel</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: Arial;
+    }
+
+    h2 {
+      text-align: center;
+      padding: 10px;
+      margin: 0;
+      background: #000;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 45vh;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .box {
+      border: 2px solid #333;
+      display: flex;
+      flex-direction: column;
+      background: black;
+    }
+
+    .title {
+      background: #222;
+      padding: 5px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    iframe {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: black;
+    }
+  </style>
 </head>
+
 <body>
 
+<h2>📺 Live LAC Preview Panel</h2>
+
 <div class="grid">
-  <iframe src="lac.html?name=Lakhipur"></iframe>
-  <iframe src="lac.html?name=Udharbond"></iframe>
-  <iframe src="lac.html?name=Borkhola"></iframe>
-  <iframe src="lac.html?name=Katigorah"></iframe>
-  <iframe src="lac.html?name=Silchar"></iframe>
-  <iframe src="lac.html?name=Sonai"></iframe>
-  <iframe src="lac.html?name=Dholai"></iframe>
+
+  <div class="box">
+    <div class="title">Lakhipur</div>
+    <iframe src="lac.html?name=Lakhipur"></iframe>
+  </div>
+
+  <div class="box">
+    <div class="title">Udharbond</div>
+    <iframe src="lac.html?name=Udharbond"></iframe>
+  </div>
+
+  <div class="box">
+    <div class="title">Borkhola</div>
+    <iframe src="lac.html?name=Borkhola"></iframe>
+  </div>
+
+  <div class="box">
+    <div class="title">Katigorah</div>
+    <iframe src="lac.html?name=Katigorah"></iframe>
+  </div>
+
+  <div class="box">
+    <div class="title">Silchar</div>
+    <iframe src="lac.html?name=Silchar"></iframe>
+  </div>
+
+  <div class="box">
+    <div class="title">Sonai</div>
+    <iframe src="lac.html?name=Sonai"></iframe>
+  </div>
+
+  <div class="box">
+    <div class="title">Dholai</div>
+    <iframe src="lac.html?name=Dholai"></iframe>
+  </div>
+
 </div>
 
 </body>
