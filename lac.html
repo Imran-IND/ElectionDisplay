@@ -2,20 +2,23 @@
 <html>
 <head>
   <link rel="stylesheet" href="style.css">
+  <title>LAC Display</title>
 </head>
 <body>
 
-<div id="countdown"></div>
+<div id="countdown" style="text-align:center; font-size:30px; margin-top:10px;"></div>
 <div id="content"></div>
 
 <script type="module">
 import { db, doc, onSnapshot } from './firebase.js';
 
+// 📌 Get LAC name from URL
 const params = new URLSearchParams(window.location.search);
 const lac = params.get("name");
 
 let currentTime = 0;
 
+// 🔁 Listen for real-time updates
 onSnapshot(doc(db, "lacData", lac), (docSnap) => {
   if (!docSnap.exists()) return;
 
@@ -27,6 +30,7 @@ onSnapshot(doc(db, "lacData", lac), (docSnap) => {
   }
 });
 
+// ⏳ Countdown before update
 function startCountdown(data) {
   let count = 10;
   const cd = document.getElementById("countdown");
@@ -43,18 +47,19 @@ function startCountdown(data) {
   }, 1000);
 }
 
+// 📺 Load content (UPDATED HERE)
 function loadContent(data) {
   const div = document.getElementById("content");
   div.innerHTML = "";
 
   if (data.type.includes("image")) {
     const img = document.createElement("img");
-    img.src = data.fileUrl;
+    img.src = data.fileData;   // ✅ IMPORTANT CHANGE
     img.className = "fullscreen";
     div.appendChild(img);
   } else {
     const iframe = document.createElement("iframe");
-    iframe.src = data.fileUrl;
+    iframe.src = data.fileData;  // ✅ IMPORTANT CHANGE
     iframe.className = "fullscreen";
     div.appendChild(iframe);
   }
