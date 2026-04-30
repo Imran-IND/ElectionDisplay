@@ -30,6 +30,7 @@ body {
   text-align:center;
 }
 
+/* Fade */
 .fade {
   opacity:0;
   transition:0.5s;
@@ -38,7 +39,7 @@ body {
   opacity:1;
 }
 
-/* 🔴 COUNTDOWN OVERLAY */
+/* 🔴 FULL SCREEN OVERLAY */
 #overlay {
   position:fixed;
   width:100%;
@@ -52,8 +53,14 @@ body {
   z-index:9999;
 }
 
-#updateText { font-size:4vw; }
-#countdown { font-size:18vw; font-weight:bold; }
+#updateText {
+  font-size:4vw;
+}
+
+#countdown {
+  font-size:18vw;
+  font-weight:bold;
+}
 </style>
 </head>
 
@@ -62,10 +69,9 @@ body {
 <div id="loader">📡 Waiting for data...</div>
 <img id="screen" class="fade">
 
-<!-- 🔴 OVERLAY -->
 <div id="overlay">
   <div id="updateText"></div>
-  <div id="countdown"></div>
+  <div id="countdown">10</div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -87,7 +93,7 @@ const updateText = document.getElementById("updateText");
 let currentImage = "";
 let isUpdating = false;
 
-// 🔴 LIVE LISTENER
+// 🔴 MAIN LISTENER
 db.collection("lacData")
 .doc(lac)
 .collection("rounds")
@@ -95,7 +101,6 @@ db.collection("lacData")
 .limit(1)
 .onSnapshot(async (snap) => {
 
-  // ❌ NO DATA
   if (snap.empty) {
     img.src = "";
     img.style.display = "none";
@@ -111,52 +116,50 @@ db.collection("lacData")
   const newImage = doc.data().fileData;
   const round = doc.data().round;
 
-  // ❌ SAME IMAGE
+  // same image → ignore
   if (newImage === currentImage) return;
 
-  // ❌ PREVENT MULTIPLE TRIGGERS
+  // prevent double trigger
   if (isUpdating) return;
 
   isUpdating = true;
   currentImage = newImage;
 
-  // 🔴 SHOW OVERLAY COUNTDOWN
+  // 🔴 SHOW OVERLAY
   overlay.style.display = "flex";
   updateText.innerText = `Updating Round ${round}`;
 
-  let count = 10;
-  countdown.innerText = count;
+  // 🔥 PROPER COUNTDOWN
+  for (let i = 10; i >= 1; i--) {
 
-  const interval = setInterval(() => {
+    countdown.innerText = i;
 
-    count--;
-    countdown.innerText = count;
+    // force UI update
+    await new Promise(requestAnimationFrame);
 
-    if (count === 0) {
-      clearInterval(interval);
+    // wait 1 sec
+    await new Promise(r => setTimeout(r, 1000));
+  }
 
-      // 🔥 PRELOAD IMAGE
-      const temp = new Image();
-      temp.src = newImage;
+  // 🔥 LOAD IMAGE AFTER COUNTDOWN
+  const temp = new Image();
+  temp.src = newImage;
 
-      temp.onload = () => {
+  temp.onload = () => {
 
-        overlay.style.display = "none";
+    overlay.style.display = "none";
 
-        img.style.display = "block";
-        img.classList.remove("show");
+    img.style.display = "block";
+    img.classList.remove("show");
 
-        setTimeout(() => {
-          img.src = newImage;
-          img.classList.add("show");
+    setTimeout(() => {
+      img.src = newImage;
+      img.classList.add("show");
 
-          loader.style.display = "none";
-          isUpdating = false;
-        }, 300);
-      };
-    }
-
-  }, 1000);
+      loader.style.display = "none";
+      isUpdating = false;
+    }, 300);
+  };
 
 });
 
