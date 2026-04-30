@@ -108,7 +108,9 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "election_upload_v2");
+
+  // ⚠️ IMPORTANT — exact preset name
+  formData.append("upload_preset", "election_upload");
 
   try {
     const res = await fetch(
@@ -120,16 +122,11 @@ async function upload() {
     );
 
     const data = await res.json();
-    console.log(data);
+    console.log("Cloudinary:", data);
 
-    // 🔥 Proper error handling
+    // 🔥 SHOW FULL ERROR
     if (data.error) {
       alert("❌ " + data.error.message);
-      return;
-    }
-
-    if (!data.secure_url) {
-      alert("❌ Upload failed");
       return;
     }
 
@@ -151,7 +148,7 @@ async function upload() {
 
   } catch (err) {
     console.error(err);
-    alert("❌ Error uploading");
+    alert("❌ Upload error");
   }
 }
 // 🔹 GRID (fixed placeholder)
