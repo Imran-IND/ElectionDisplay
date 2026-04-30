@@ -2,12 +2,12 @@
 
 // Your Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDDaXmNZ49QhYkptagma6vRQhHcXmgjhes",
-  authDomain: "electiondisplay-daca0.firebaseapp.com",
-  projectId: "electiondisplay-daca0",
-  storageBucket: "electiondisplay-daca0.firebasestorage.app",
-  messagingSenderId: "387914551638",
-  appId: "1:387914551638:web:85cd5a2a5538f9efd906f7"
+  apiKey: "AIzaSyAtncVSR1m9lkxLdfCzWKWfa7KCsvKzXR4",
+  authDomain: "electiondisplay-cd9a1.firebaseapp.com",
+  projectId: "electiondisplay-cd9a1",
+  storageBucket: "electiondisplay-cd9a1.firebasestorage.app",
+  messagingSenderId: "653096453446",
+  appId: "1:653096453446:web:d1cd5e3db24153a4739147"
 };
 
 // Initialize Firebase
