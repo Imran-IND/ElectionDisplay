@@ -108,7 +108,7 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "election_upload");
+  formData.append("upload_preset", "election_upload_v2");
 
   try {
     const res = await fetch(
