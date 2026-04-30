@@ -85,7 +85,7 @@ input, select, button {
 
 <body>
 
-<h2>📊 Election Dashboard</h2>
+<h2>Election Dashboard</h2>
 
 <div class="top-bar">
   <select id="lac">
@@ -105,10 +105,10 @@ input, select, button {
   <button onclick="upload()">Upload</button>
 </div>
 
-<h3>📺 Live Screens</h3>
+<h3>Live Screens</h3>
 <div id="grid" class="grid"></div>
 
-<h3>📂 Round List</h3>
+<h3>Round List</h3>
 <div id="roundList"></div>
 
 <div id="modal" class="modal" onclick="closeModal()">
@@ -122,7 +122,7 @@ input, select, button {
 
 <script>
 
-// 🔥 Upload (fixed bug version)
+//  Upload (fixed bug version)
 async function upload() {
   const lac = document.getElementById("lac").value;
   const round = document.getElementById("round").value;
@@ -160,7 +160,7 @@ async function upload() {
   reader.readAsDataURL(fileInput.files[0]);
 }
 
-// 🔥 Modal
+//  Modal
 function openModal(src){
   document.getElementById("modalImg").src = src;
   document.getElementById("modal").style.display="flex";
@@ -170,7 +170,7 @@ function closeModal(){
   document.getElementById("modal").style.display="none";
 }
 
-// 🔥 Grid (latest per LAC)
+//  Grid (latest per LAC)
 async function loadGrid(){
   const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
   const grid = document.getElementById("grid");
@@ -200,7 +200,7 @@ async function loadGrid(){
   }
 }
 
-// 🔥 Round list
+// round list
 async function loadRounds(){
   const lac = document.getElementById("lac").value;
   const div = document.getElementById("roundList");
@@ -218,7 +218,7 @@ async function loadRounds(){
 
     div.innerHTML += `
       <div class="roundBox">
-        <h3>📍 ${lac} - Round ${d.round}</h3>
+        <h3> ${lac} - Round ${d.round}</h3>
         <img src="${d.fileData}">
         <br><br>
         <button onclick="deleteRound('${lac}','${doc.id}')">Delete</button>
@@ -228,7 +228,7 @@ async function loadRounds(){
   });
 }
 
-// 🔥 Delete
+// Delete
 async function deleteRound(lac,id){
   await db.collection("lacData")
     .doc(lac)
@@ -240,7 +240,7 @@ async function deleteRound(lac,id){
   loadGrid();
 }
 
-// 🔁 Refresh on LAC change
+// refresh page
 document.getElementById("lac").addEventListener("change", loadRounds);
 
 // INIT
