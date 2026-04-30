@@ -14,6 +14,7 @@ body {
   align-items:center;
   height:100vh;
   overflow:hidden;
+  font-family:Arial;
 }
 
 /* Image */
@@ -23,21 +24,46 @@ body {
   object-fit:contain;
 }
 
-/* Loader */
+/* Message */
 #loader {
   position:absolute;
   color:white;
-  font-size:25px;
-  font-family:Arial;
+  font-size:4vw;
+  text-align:center;
 }
 
-/* Fade effect */
+/* Fade */
 .fade {
   opacity:0;
   transition:opacity 0.5s ease-in-out;
 }
 .show {
   opacity:1;
+}
+
+/* 🔴 FULL SCREEN COUNTDOWN */
+#overlay {
+  position:fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  background:black;
+  color:white;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:9999;
+  text-align:center;
+}
+
+#updateText {
+  font-size:4vw;
+}
+
+#countdown {
+  font-size:18vw;
+  font-weight:bold;
+  margin-top:20px;
 }
 </style>
 </head>
@@ -47,6 +73,12 @@ body {
 <div id="loader">📡 Waiting for data...</div>
 <img id="screen" class="fade" />
 
+<!-- 🔴 COUNTDOWN OVERLAY -->
+<div id="overlay">
+  <div id="updateText"></div>
+  <div id="countdown"></div>
+</div>
+
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -54,57 +86,102 @@ body {
 
 <script>
 
+// 🔹 GET LAC FROM URL
 const params = new URLSearchParams(window.location.search);
 const lac = params.get("name") || "Lakhipur";
 
 const img = document.getElementById("screen");
 const loader = document.getElementById("loader");
 
+const overlay = document.getElementById("overlay");
+const updateText = document.getElementById("updateText");
+const countdown = document.getElementById("countdown");
+
 let currentImage = "";
+let lastRound = null;
 
-// 🔴 LIVE LISTENER
-db.collection("lacData")
-.doc(lac)
-.collection("rounds")
-.orderBy("time","desc")
-.limit(1)
-.onSnapshot(snap => {
+// 🔴 COUNTDOWN FUNCTION
+async function showCountdown(round) {
 
-  if (snap.empty) {
-    loader.innerText = "⚠️ No data available";
-    return;
+  overlay.style.display = "flex";
+  updateText.innerHTML = `🔴 Updating Round ${round}`;
+
+  for (let i = 10; i >= 1; i--) {
+    countdown.innerHTML = i;
+    await new Promise(r => setTimeout(r, 1000));
   }
 
-  snap.forEach(doc => {
-    const newImage = doc.data().fileData;
+  overlay.style.display = "none";
+}
 
-    // Avoid reload if same image
-    if (newImage === currentImage) return;
+// 🔴 REAL-TIME LISTENER
+db.collection("lacData")
+  .doc(lac)
+  .collection("rounds")
+  .orderBy("time","desc")
+  .limit(1)
+  .onSnapshot(async snap => {
 
-    currentImage = newImage;
+    // ❌ NO DATA (deleted)
+    if (snap.empty) {
 
-    // Show loading text
-    loader.innerText = "🔄 Updating...";
-    loader.style.display = "block";
+      currentImage = "";
+      lastRound = null;
 
-    // Preload image
-    const temp = new Image();
-    temp.src = newImage;
-
-    temp.onload = () => {
+      img.src = "";
       img.classList.remove("show");
-      
-      setTimeout(() => {
-        img.src = newImage;
-        img.classList.add("show");
 
-        loader.style.display = "none";
-      }, 300);
-    };
+      loader.innerText = "📡 Data will be updated soon...";
+      loader.style.display = "block";
+
+      return;
+    }
+
+    snap.forEach(async doc => {
+
+      const data = doc.data();
+      const newImage = data.fileData;
+      const newRound = data.round;
+
+      // First load (no countdown)
+      if (lastRound === null) {
+        lastRound = newRound;
+      }
+
+      // 🔴 NEW ROUND → SHOW COUNTDOWN
+      if (newRound !== lastRound) {
+        lastRound = newRound;
+
+        await showCountdown(newRound);
+      }
+
+      // Avoid reload same image
+      if (newImage === currentImage) return;
+
+      currentImage = newImage;
+
+      loader.innerText = "🔄 Loading...";
+      loader.style.display = "block";
+
+      const temp = new Image();
+      temp.src = newImage;
+
+      temp.onload = () => {
+
+        img.classList.remove("show");
+
+        setTimeout(() => {
+          img.src = newImage;
+          img.classList.add("show");
+
+          loader.style.display = "none";
+        }, 300);
+
+      };
+
+    });
 
   });
-
-});
 
 </script>
 
