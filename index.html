@@ -96,6 +96,7 @@ button {
 <script>
 
 // 🔥 CLOUDINARY UPLOAD
+<script>
 async function upload() {
   const lac = document.getElementById("lac").value;
   const round = document.getElementById("round").value;
@@ -106,12 +107,12 @@ async function upload() {
 
   const file = fileInput.files[0];
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "election_upload");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "election_upload");
 
-    const response = await fetch(
+  try {
+    const res = await fetch(
       "https://api.cloudinary.com/v1_1/dekoodjy1/image/upload",
       {
         method: "POST",
@@ -119,26 +120,22 @@ async function upload() {
       }
     );
 
-    const data = await response.json();
+    const data = await res.json();
+    console.log("Cloudinary:", data);
 
-    console.log("Cloudinary Response:", data);
-
-    // 🔴 VERY IMPORTANT CHECK
     if (!data.secure_url) {
-      alert("❌ Upload failed - check preset");
+      alert("❌ Upload failed");
       return;
     }
-
-    const url = data.secure_url;
 
     await db.collection("lacData")
       .doc(lac)
       .collection("rounds")
       .doc("round" + round)
       .set({
-        fileData: url,
-        round: round,
-        lac: lac,
+        fileData: data.secure_url,
+        round,
+        lac,
         time: Date.now()
       });
 
@@ -149,9 +146,10 @@ async function upload() {
 
   } catch (err) {
     console.error(err);
-    alert("❌ Upload error");
+    alert("❌ Error uploading");
   }
 }
+</script>
 
 // 🔹 GRID
 async function loadGrid(){
