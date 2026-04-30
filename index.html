@@ -1,36 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Panel</title>
+  <title>Admin Control Panel</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:,">
+
+  <style>
+    .layout {
+      display: flex;
+      gap: 30px;
+      padding: 20px;
+    }
+
+    .panel {
+      flex: 1;
+      background: #111;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .preview-box img {
+      width: 100%;
+      border-radius: 8px;
+    }
+
+    .current-box img {
+      width: 100%;
+      border: 3px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .selected {
+      border: 3px solid yellow;
+    }
+
+    h3 {
+      margin-top: 0;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="container">
-  <h2>Upload Result</h2>
+<h2 style="text-align:center;">⚙️ Admin Control Panel</h2>
 
-  <input type="file" id="file"><br><br>
+<div class="layout">
 
-  <select id="lac">
-    <option>Lakhipur</option>
-    <option>Udharbond</option>
-    <option>Borkhola</option>
-    <option>Katigorah</option>
-    <option>Silchar</option>
-    <option>Sonai</option>
-    <option>Dholai</option>
-  </select><br><br>
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <h3>Upload / Replace</h3>
 
-  <button onclick="previewFile()">Preview</button>
-  <button onclick="uploadFile()">Publish</button>
-  <button onclick="deleteData()">Delete</button>
+    <select id="lac">
+      <option>Lakhipur</option>
+      <option>Udharbond</option>
+      <option>Borkhola</option>
+      <option>Katigorah</option>
+      <option>Silchar</option>
+      <option>Sonai</option>
+      <option>Dholai</option>
+    </select><br><br>
 
-  <h3>Preview</h3>
-  <div id="preview"></div>
+    <input type="file" id="file"><br><br>
 
-  <h3>Current Uploaded</h3>
-  <div id="currentData"></div>
+    <button onclick="previewFile()">Preview</button>
+    <button onclick="uploadFile()">Upload / Replace</button>
+    <button onclick="deleteSelected()">Delete Selected</button>
+
+    <h3>Preview</h3>
+    <div id="preview" class="preview-box"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+    <h3>Current Content (Click to Select)</h3>
+    <div id="currentData" class="current-box"></div>
+  </div>
+
 </div>
 
 <!-- Firebase -->
@@ -41,6 +87,7 @@
 <script>
 let base64Data = "";
 let fileType = "";
+let selected = false;
 
 function previewFile() {
   const file = document.getElementById("file").files[0];
@@ -53,20 +100,13 @@ function previewFile() {
     base64Data = e.target.result;
 
     const preview = document.getElementById("preview");
-    preview.innerHTML = "";
-
-    const img = document.createElement("img");
-    img.src = base64Data;
-    img.style.width = "300px";
-    preview.appendChild(img);
+    preview.innerHTML = `<img src="${base64Data}">`;
   };
-
   reader.readAsDataURL(file);
 }
 
 async function uploadFile() {
   const lac = document.getElementById("lac").value;
-
   if (!base64Data) return alert("Preview first");
 
   await db.collection("lacData").doc(lac).set({
@@ -75,17 +115,23 @@ async function uploadFile() {
     updatedAt: Date.now()
   });
 
-  alert("Uploaded ✅");
+  alert("Uploaded / Replaced ✅");
   loadCurrent();
 }
 
-async function deleteData() {
+async function deleteSelected() {
   const lac = document.getElementById("lac").value;
 
-  await db.collection("lacData").doc(lac).delete();
-  alert("Deleted ✅");
+  if (!selected) {
+    alert("Select item first ❗");
+    return;
+  }
 
-  document.getElementById("currentData").innerHTML = "No data";
+  await db.collection("lacData").doc(lac).delete();
+
+  alert("Deleted ✅");
+  selected = false;
+  loadCurrent();
 }
 
 async function loadCurrent() {
@@ -94,9 +140,10 @@ async function loadCurrent() {
 
   const div = document.getElementById("currentData");
   div.innerHTML = "";
+  selected = false;
 
   if (!doc.exists) {
-    div.innerHTML = "No data uploaded";
+    div.innerHTML = "No content available";
     return;
   }
 
@@ -105,7 +152,12 @@ async function loadCurrent() {
   if (data.type.includes("image")) {
     const img = document.createElement("img");
     img.src = data.fileData;
-    img.style.width = "200px";
+
+    img.onclick = () => {
+      img.classList.toggle("selected");
+      selected = !selected;
+    };
+
     div.appendChild(img);
   }
 }
