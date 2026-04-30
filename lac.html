@@ -1,45 +1,27 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>LAC Display</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:,">
-
-  <style>
-    body { margin:0; background:black; }
-    #content { width:100vw; height:100vh; display:flex; justify-content:center; align-items:center; }
-    .fullscreen { width:100vw; height:100vh; object-fit:contain; }
-  </style>
-</head>
-
-<body>
+<body style="margin:0;background:black;">
 
 <div id="content"></div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="firebase.js"></script>
 
 <script>
 const params = new URLSearchParams(window.location.search);
-let lac = params.get("name") || "Lakhipur";
+const lac = params.get("name") || "Lakhipur";
 
-db.collection("lacData").doc(lac)
-.onSnapshot((doc) => {
-  if (!doc.exists) return;
-
-  const data = doc.data();
-
-  const div = document.getElementById("content");
-  div.innerHTML = "";
-
-  if (data.type.includes("image")) {
-    const img = document.createElement("img");
-    img.src = data.fileData;
-    img.className = "fullscreen";
-    div.appendChild(img);
-  }
+db.collection("lacData")
+.doc(lac)
+.collection("rounds")
+.orderBy("time","desc")
+.limit(1)
+.onSnapshot(snap=>{
+  snap.forEach(doc=>{
+    document.body.innerHTML =
+      `<img src="${doc.data().fileData}" style="width:100vw;height:100vh;object-fit:contain">`;
+  });
 });
 </script>
 
