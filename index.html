@@ -26,29 +26,25 @@
   <button onclick="uploadFile()">Publish</button>
   <button onclick="deleteData()">Delete</button>
 
-  <br><br>
+  <h3>Preview</h3>
   <div id="preview"></div>
+
+  <h3>Current Uploaded</h3>
+  <div id="currentData"></div>
 </div>
 
-<!-- ✅ Firebase SDK (MUST be added) -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
-<!-- ✅ Firebase Config -->
 <script src="firebase.js"></script>
 
-<!-- ✅ Your Script -->
 <script>
 let base64Data = "";
 let fileType = "";
 
 function previewFile() {
   const file = document.getElementById("file").files[0];
-
-  if (!file) {
-    alert("Select file first");
-    return;
-  }
+  if (!file) return alert("Select file first");
 
   fileType = file.type;
 
@@ -69,44 +65,53 @@ function previewFile() {
 }
 
 async function uploadFile() {
-  console.log("Publish clicked");
-
   const lac = document.getElementById("lac").value;
 
-  if (!base64Data) {
-    alert("Please click Preview first ❗");
-    return;
-  }
+  if (!base64Data) return alert("Preview first");
 
-  try {
-    console.log("Uploading to Firebase...", lac);
+  await db.collection("lacData").doc(lac).set({
+    fileData: base64Data,
+    type: fileType,
+    updatedAt: Date.now()
+  });
 
-    await db.collection("lacData").doc(lac).set({
-      fileData: base64Data,
-      type: fileType,
-      updatedAt: Date.now()
-    });
-
-    console.log("Upload success");
-    alert("Uploaded Successfully ✅");
-
-  } catch (error) {
-    console.error("Upload error:", error);
-    alert("Error: " + error.message);
-  }
+  alert("Uploaded ✅");
+  loadCurrent();
 }
 
 async function deleteData() {
   const lac = document.getElementById("lac").value;
 
-  try {
-    await db.collection("lacData").doc(lac).delete();
-    alert("Deleted");
-  } catch (error) {
-    console.error(error);
-    alert("Delete Failed");
+  await db.collection("lacData").doc(lac).delete();
+  alert("Deleted ✅");
+
+  document.getElementById("currentData").innerHTML = "No data";
+}
+
+async function loadCurrent() {
+  const lac = document.getElementById("lac").value;
+  const doc = await db.collection("lacData").doc(lac).get();
+
+  const div = document.getElementById("currentData");
+  div.innerHTML = "";
+
+  if (!doc.exists) {
+    div.innerHTML = "No data uploaded";
+    return;
+  }
+
+  const data = doc.data();
+
+  if (data.type.includes("image")) {
+    const img = document.createElement("img");
+    img.src = data.fileData;
+    img.style.width = "200px";
+    div.appendChild(img);
   }
 }
+
+document.getElementById("lac").addEventListener("change", loadCurrent);
+window.onload = loadCurrent;
 </script>
 
 </body>
