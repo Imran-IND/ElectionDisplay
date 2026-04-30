@@ -43,3 +43,12 @@ iframe {
   height: 250px;
   border: none;
 }
+
+#countdown {
+  position:absolute;
+  font-size:150px;
+  color:#00ffcc;
+  font-weight:bold;
+  font-family:Arial;
+  display:none;
+}
