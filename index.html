@@ -1,185 +1,201 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin Control Panel</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:,">
+<title>Election Control Panel</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:,">
 
-  <style>
-    .layout {
-      display: flex;
-      gap: 30px;
-      padding: 20px;
-    }
+<style>
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  padding: 20px;
+}
 
-    .panel {
-      flex: 1;
-      background: #111;
-      padding: 20px;
-      border-radius: 10px;
-    }
+.card {
+  background: #111;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
 
-    .preview-box img {
-      width: 100%;
-      border-radius: 8px;
-    }
+.card img {
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+}
 
-    .current-box img {
-      width: 100%;
-      border: 3px solid transparent;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+.modal {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.9);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
 
-    .selected {
-      border: 3px solid yellow;
-    }
+.modal img {
+  max-width:90%;
+  max-height:90%;
+}
 
-    h3 {
-      margin-top: 0;
-    }
-  </style>
+.panel {
+  padding:20px;
+}
+</style>
 </head>
 
 <body>
 
-<h2 style="text-align:center;">⚙️ Admin Control Panel</h2>
+<h2 style="text-align:center;">📊 Election Dashboard</h2>
 
-<div class="layout">
+<div class="panel">
 
-  <!-- LEFT PANEL -->
-  <div class="panel">
-    <h3>Upload / Replace</h3>
+<select id="lac">
+  <option>Lakhipur</option>
+  <option>Udharbond</option>
+  <option>Borkhola</option>
+  <option>Katigorah</option>
+  <option>Silchar</option>
+  <option>Sonai</option>
+  <option>Dholai</option>
+</select>
 
-    <select id="lac">
-      <option>Lakhipur</option>
-      <option>Udharbond</option>
-      <option>Borkhola</option>
-      <option>Katigorah</option>
-      <option>Silchar</option>
-      <option>Sonai</option>
-      <option>Dholai</option>
-    </select><br><br>
+<input type="number" id="round" placeholder="Enter Round No">
 
-    <input type="file" id="file"><br><br>
+<input type="file" id="file">
 
-    <button onclick="previewFile()">Preview</button>
-    <button onclick="uploadFile()">Upload / Replace</button>
-    <button onclick="deleteSelected()">Delete Selected</button>
-
-    <h3>Preview</h3>
-    <div id="preview" class="preview-box"></div>
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="panel">
-    <h3>Current Content (Click to Select)</h3>
-    <div id="currentData" class="current-box"></div>
-  </div>
+<button onclick="upload()">Upload</button>
 
 </div>
 
-<!-- Firebase -->
+<h3 style="text-align:center;">📺 Live Screens</h3>
+
+<div id="grid" class="grid"></div>
+
+<h3 style="text-align:center;">📂 Round List</h3>
+
+<div id="roundList"></div>
+
+<div id="modal" class="modal" onclick="closeModal()">
+  <img id="modalImg">
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="firebase.js"></script>
 
 <script>
-let base64Data = "";
-let fileType = "";
-let selected = false;
+let base64 = "";
 
-function previewFile() {
-  const file = document.getElementById("file").files[0];
-  if (!file) return alert("Select file first");
-
-  fileType = file.type;
-
+document.getElementById("file").addEventListener("change", function(e){
   const reader = new FileReader();
-  reader.onload = function(e) {
-    base64Data = e.target.result;
+  reader.onload = e2 => base64 = e2.target.result;
+  reader.readAsDataURL(e.target.files[0]);
+});
 
-    const preview = document.getElementById("preview");
-    preview.innerHTML = `<img src="${base64Data}">`;
-  };
-  reader.readAsDataURL(file);
-}
-
-async function uploadFile() {
+async function upload() {
   const lac = document.getElementById("lac").value;
+  const round = document.getElementById("round").value;
 
-  if (!base64Data) {
-    alert("Preview first ❗");
-    return;
-  }
+  if(!round) return alert("Enter round");
 
-  try {
-    await db.collection("lacData").doc(lac).set({
-      fileData: base64Data,
-      type: fileType,
-      updatedAt: Date.now()
+  await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .doc("round"+round)
+    .set({
+      fileData: base64,
+      round: round,
+      time: Date.now()
     });
 
-    alert("Replaced Successfully ✅");
+  alert("Uploaded Round " + round);
+  loadRounds();
+  loadGrid();
+}
 
-    // Clear preview after upload
-    base64Data = "";
-    document.getElementById("preview").innerHTML = "";
+function openModal(src){
+  document.getElementById("modalImg").src = src;
+  document.getElementById("modal").style.display="flex";
+}
 
-    // Refresh current view
-    loadCurrent();
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+}
 
-  } catch (err) {
-    console.error(err);
-    alert("Upload failed ❌");
+async function loadGrid(){
+  const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
+  const grid = document.getElementById("grid");
+  grid.innerHTML="";
+
+  for(let lac of lacs){
+    const snap = await db.collection("lacData")
+      .doc(lac)
+      .collection("rounds")
+      .orderBy("time","desc")
+      .limit(1)
+      .get();
+
+    let img = "";
+
+    snap.forEach(d=>{
+      img = d.data().fileData;
+    });
+
+    grid.innerHTML += `
+      <div class="card" onclick="openModal('${img}')">
+        <h4>${lac}</h4>
+        <img src="${img}">
+      </div>
+    `;
   }
 }
 
-async function deleteSelected() {
+async function loadRounds(){
   const lac = document.getElementById("lac").value;
+  const div = document.getElementById("roundList");
 
-  if (!selected) {
-    alert("Select item first ❗");
-    return;
-  }
+  const snap = await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .orderBy("time","desc")
+    .get();
 
-  await db.collection("lacData").doc(lac).delete();
+  div.innerHTML="";
 
-  alert("Deleted ✅");
-  selected = false;
-  loadCurrent();
+  snap.forEach(doc=>{
+    const d = doc.data();
+
+    div.innerHTML += `
+      <div style="margin:10px; border:1px solid #333; padding:10px;">
+        <h4>Round ${d.round}</h4>
+        <img src="${d.fileData}" style="width:200px">
+        <br>
+        <button onclick="deleteRound('${lac}','${doc.id}')">Delete</button>
+        <button onclick="openModal('${d.fileData}')">View</button>
+      </div>
+    `;
+  });
 }
 
-async function loadCurrent() {
-  const lac = document.getElementById("lac").value;
-  const doc = await db.collection("lacData").doc(lac).get();
+async function deleteRound(lac,id){
+  await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .doc(id)
+    .delete();
 
-  const div = document.getElementById("currentData");
-  div.innerHTML = "";
-  selected = false;
-
-  if (!doc.exists) {
-    div.innerHTML = "No content available";
-    return;
-  }
-
-  const data = doc.data();
-
-  if (data.type.includes("image")) {
-    const img = document.createElement("img");
-    img.src = data.fileData;
-
-    img.onclick = () => {
-      img.classList.toggle("selected");
-      selected = !selected;
-    };
-
-    div.appendChild(img);
-  }
+  loadRounds();
+  loadGrid();
 }
 
-document.getElementById("lac").addEventListener("change", loadCurrent);
-window.onload = loadCurrent;
+document.getElementById("lac").addEventListener("change", loadRounds);
+
+loadGrid();
+loadRounds();
 </script>
 
 </body>
