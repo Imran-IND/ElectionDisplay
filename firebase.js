@@ -1,6 +1,4 @@
-// firebase.js
-
-// Your Firebase configuration
+//Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAtncVSR1m9lkxLdfCzWKWfa7KCsvKzXR4",
   authDomain: "electiondisplay-cd9a1.firebaseapp.com",
