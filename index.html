@@ -13,24 +13,40 @@ body {
   font-family:Arial;
 }
 
-h2, h3 {
+h2 {
   text-align:center;
+  margin-top:15px;
 }
 
+/* Top bar */
 .top-bar {
   display:flex;
   justify-content:center;
   gap:10px;
   margin:20px;
+  flex-wrap:wrap;
 }
 
 input, select, button {
-  padding:8px;
+  padding:10px;
+  border-radius:5px;
+  border:none;
 }
 
+button {
+  background:#4CAF50;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover {
+  background:#45a049;
+}
+
+/* Grid */
 .grid {
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
   gap:15px;
   padding:20px;
 }
@@ -40,24 +56,27 @@ input, select, button {
   border-radius:10px;
   padding:10px;
   cursor:pointer;
-  transition:0.2s;
+  transition:0.3s;
 }
 
 .card:hover {
-  transform:scale(1.03);
+  transform:scale(1.05);
 }
 
 .card img {
   width:100%;
-  height:150px;
+  height:180px;
   object-fit:contain;
   background:black;
+  border-radius:5px;
 }
 
+/* Round List */
 .roundBox {
   border:1px solid #333;
   margin:10px;
   padding:10px;
+  border-radius:8px;
 }
 
 .roundBox img {
@@ -70,7 +89,7 @@ input, select, button {
   top:0; left:0;
   width:100%;
   height:100%;
-  background:rgba(0,0,0,0.9);
+  background:rgba(0,0,0,0.95);
   display:none;
   justify-content:center;
   align-items:center;
@@ -105,10 +124,10 @@ input, select, button {
   <button onclick="upload()">Upload</button>
 </div>
 
-<h3>Live Screens</h3>
+<h3 style="text-align:center;">Live Screens</h3>
 <div id="grid" class="grid"></div>
 
-<h3>Round List</h3>
+<h3 style="text-align:center;">Round List</h3>
 <div id="roundList"></div>
 
 <div id="modal" class="modal" onclick="closeModal()">
@@ -118,11 +137,12 @@ input, select, button {
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script src="firebase.js"></script>
 
 <script>
 
-//  Upload (fixed bug version)
+// Upload using STORAGE (FIXED)
 async function upload() {
   const lac = document.getElementById("lac").value;
   const round = document.getElementById("round").value;
@@ -131,46 +151,48 @@ async function upload() {
   if (!round) return alert("Enter round ❗");
   if (!fileInput.files.length) return alert("Select file ❗");
 
-  const reader = new FileReader();
+  const file = fileInput.files[0];
 
-  reader.onload = async function(e) {
-    const base64 = e.target.result;
+  // Upload to Firebase Storage
+  const storageRef = storage
+    .ref()
+    .child(`lacData/${lac}/round${round}_${Date.now()}`);
 
-    await db.collection("lacData")
-      .doc(lac)
-      .collection("rounds")
-      .doc("round" + round)
-      .set({
-        fileData: base64,
-        round: round,
-        lac: lac,
-        time: Date.now()
-      });
+  await storageRef.put(file);
 
-    alert(`Uploaded ${lac} - Round ${round}`);
+  const url = await storageRef.getDownloadURL();
 
-    // RESET INPUTS
-    fileInput.value = "";
-    document.getElementById("round").value = "";
+  // Save URL in Firestore
+  await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .doc("round" + round)
+    .set({
+      fileData: url,
+      round: round,
+      lac: lac,
+      time: Date.now()
+    });
 
-    loadGrid();
-    loadRounds();
-  };
+  alert(`Uploaded ${lac} - Round ${round} `);
 
-  reader.readAsDataURL(fileInput.files[0]);
+  fileInput.value = "";
+  document.getElementById("round").value = "";
+
+  loadGrid();
+  loadRounds();
 }
 
-//  Modal
+// Modal
 function openModal(src){
   document.getElementById("modalImg").src = src;
   document.getElementById("modal").style.display="flex";
 }
-
 function closeModal(){
   document.getElementById("modal").style.display="none";
 }
 
-//  Grid (latest per LAC)
+// Grid
 async function loadGrid(){
   const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
   const grid = document.getElementById("grid");
@@ -185,7 +207,7 @@ async function loadGrid(){
       .limit(1)
       .get();
 
-    let img = "https://via.placeholder.com/300x150?text=No+Data";
+    let img = "no-image.png";
 
     snap.forEach(d=>{
       img = d.data().fileData;
@@ -193,14 +215,14 @@ async function loadGrid(){
 
     grid.innerHTML += `
       <div class="card" onclick="openModal('${img}')">
-        <h4>📍 ${lac}</h4>
+        <h4> ${lac}</h4>
         <img src="${img}">
       </div>
     `;
   }
 }
 
-// round list
+// Round List
 async function loadRounds(){
   const lac = document.getElementById("lac").value;
   const div = document.getElementById("roundList");
@@ -218,7 +240,7 @@ async function loadRounds(){
 
     div.innerHTML += `
       <div class="roundBox">
-        <h3> ${lac} - Round ${d.round}</h3>
+        <h3>📍 ${lac} - Round ${d.round}</h3>
         <img src="${d.fileData}">
         <br><br>
         <button onclick="deleteRound('${lac}','${doc.id}')">Delete</button>
@@ -240,10 +262,9 @@ async function deleteRound(lac,id){
   loadGrid();
 }
 
-// refresh page
+// Init
 document.getElementById("lac").addEventListener("change", loadRounds);
 
-// INIT
 loadGrid();
 loadRounds();
 
