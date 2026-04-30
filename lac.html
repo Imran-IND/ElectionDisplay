@@ -76,6 +76,7 @@ body {
   <div id="countdown">10</div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="firebase.js"></script>
@@ -92,7 +93,7 @@ const overlay = document.getElementById("overlay");
 const countdown = document.getElementById("countdown");
 const updateText = document.getElementById("updateText");
 
-let currentRound = null;
+let lastUpdateTime = 0;
 let isUpdating = false;
 
 // 🔴 REAL-TIME LISTENER
@@ -103,11 +104,13 @@ db.collection("lacData")
 .limit(1)
 .onSnapshot(async (snap) => {
 
-  // Ignore during update
+  // ❌ IGNORE DURING UPDATE
   if (isUpdating) return;
 
-  // No data
+  // ❌ NO DATA (after delete)
   if (snap.empty) {
+    lastUpdateTime = 0;
+
     img.src = "";
     img.style.display = "none";
 
@@ -117,38 +120,44 @@ db.collection("lacData")
   }
 
   const doc = snap.docs[0];
-  const newImage = doc.data().fileData;
-  const newRound = doc.data().round;
+  const data = doc.data();
 
-  // Ignore same round
-  if (newRound === currentRound) return;
+  const newImage = data.fileData;
+  const newRound = data.round;
+  const newTime = data.time;
 
-  // Lock
+  // ❌ IGNORE SAME UPDATE
+  if (newTime === lastUpdateTime) return;
+
+  // 🔒 LOCK
   isUpdating = true;
-  currentRound = newRound;
 
-  // Show overlay
+  // update tracker
+  lastUpdateTime = newTime;
+
+  // 🔴 SHOW OVERLAY
   overlay.style.display = "flex";
   updateText.innerText = `Updating Round ${newRound}`;
 
-  // Preload image
+  // 🔥 PRELOAD IMAGE FIRST
   const temp = new Image();
   temp.src = newImage;
 
-  // Countdown
+  // 🔥 COUNTDOWN (10 seconds)
   for (let i = 10; i >= 1; i--) {
     countdown.innerText = i;
+
     await new Promise(requestAnimationFrame);
     await new Promise(r => setTimeout(r, 1000));
   }
 
-  // Wait for image load
+  // 🔥 WAIT IMAGE READY
   await new Promise(resolve => {
     if (temp.complete) resolve();
     else temp.onload = resolve;
   });
 
-  // Update image (no blank state)
+  // 🔥 UPDATE IMAGE
   img.src = newImage;
 
   overlay.style.display = "none";
