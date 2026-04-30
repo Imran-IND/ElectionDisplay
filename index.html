@@ -111,11 +111,11 @@ async function upload() {
 
   // ⚠️ IMPORTANT — exact preset name
   formData.append("upload_preset", "upload_test_1");
-  formData.append("cloud_name", "dekoodjy1");
+  formData.append("cloud_name", "dekoojdy1");
 
   try {
     const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dekoodjy1/image/upload",
+      "https://api.cloudinary.com/v1_1/dekoojdy1/image/upload",
       {
         method: "POST",
         body: formData
