@@ -141,7 +141,7 @@ background:rgba(0,0,0,0.9);display:none;justify-content:center;align-items:cente
 
 <script>
 
-// 🔹 URL LAC (for TV)
+// 🔹 OPTIONAL: LAC from URL (for quick filter)
 const urlParams = new URLSearchParams(window.location.search);
 const selectedLacFromURL = urlParams.get("lac");
 
@@ -149,7 +149,7 @@ if (selectedLacFromURL) {
   document.getElementById("lac").value = selectedLacFromURL;
 }
 
-// 🔥 UPLOAD / REPLACE
+// 🔥 UPLOAD / REPLACE IMAGE
 async function upload() {
   const lac = document.getElementById("lac").value;
   const round = document.getElementById("round").value;
@@ -162,43 +162,70 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
+
+  // ✅ YOUR CLOUDINARY PRESET
   formData.append("upload_preset", "upload_test_1");
 
-  const res = await fetch(
-    "https://api.cloudinary.com/v1_1/dekoojdy1/image/upload",
-    { method: "POST", body: formData }
-  );
+  try {
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dekoojdy1/image/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.error) {
-    alert(data.error.message);
-    return;
+    if (data.error) {
+      alert("❌ " + data.error.message);
+      return;
+    }
+
+    if (!data.secure_url) {
+      alert("❌ Upload failed");
+      return;
+    }
+
+    // 🔥 SAVE TO FIRESTORE
+    await db.collection("lacData")
+      .doc(lac)
+      .collection("rounds")
+      .doc("round" + round)
+      .set({
+        fileData: data.secure_url,
+        round,
+        lac,
+        time: Date.now()
+      });
+
+    alert("✅ Upload Successful");
+
+    // 🔄 Reset input
+    document.getElementById("file").value = "";
+
+    // 🔄 Refresh UI properly
+    setTimeout(() => {
+      loadGrid();
+      loadRounds();
+    }, 500);
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Upload error");
   }
-
-  await db.collection("lacData")
-    .doc(lac)
-    .collection("rounds")
-    .doc("round" + round)
-    .set({
-      fileData: data.secure_url,
-      round,
-      lac,
-      time: Date.now()
-    });
-
-  alert("Uploaded");
-  loadGrid();
-  loadRounds();
 }
 
-// 🔹 GRID
+
+// 🔹 LOAD LIVE GRID
 async function loadGrid(){
   const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
   const grid = document.getElementById("grid");
-  grid.innerHTML="";
 
-  for(let lac of lacs){
+  grid.innerHTML = "";
+
+  for (let lac of lacs) {
+
     const snap = await db.collection("lacData")
       .doc(lac)
       .collection("rounds")
@@ -208,7 +235,9 @@ async function loadGrid(){
 
     let img = "https://dummyimage.com/300x200/000/fff&text=No+Image";
 
-    snap.forEach(d=> img = d.data().fileData);
+    snap.forEach(doc => {
+      img = doc.data().fileData;
+    });
 
     grid.innerHTML += `
       <div class="card">
@@ -219,7 +248,8 @@ async function loadGrid(){
   }
 }
 
-// 🔹 ROUND LIST
+
+// 🔹 LOAD ROUND LIST
 async function loadRounds(){
   const lac = document.getElementById("lac").value;
   const div = document.getElementById("roundList");
@@ -230,16 +260,16 @@ async function loadRounds(){
     .orderBy("time","desc")
     .get();
 
-  div.innerHTML="";
+  div.innerHTML = "";
 
-  snap.forEach(doc=>{
+  snap.forEach(doc => {
     const d = doc.data();
 
     div.innerHTML += `
       <div class="roundBox">
         <h3>${lac} - Round ${d.round}</h3>
         <img src="${d.fileData}" onclick="openPopup('${d.fileData}')">
-        <br>
+        <br><br>
         <button class="deleteBtn" onclick="deleteRound('${lac}','${d.round}')">Delete</button>
         <button class="replaceBtn" onclick="prepareReplace('${d.round}')">Replace</button>
       </div>
@@ -247,8 +277,11 @@ async function loadRounds(){
   });
 }
 
-// 🔹 DELETE
+
+// 🔹 DELETE ROUND
 async function deleteRound(lac, round){
+  if (!confirm("Delete this round?")) return;
+
   await db.collection("lacData")
     .doc(lac)
     .collection("rounds")
@@ -259,78 +292,34 @@ async function deleteRound(lac, round){
   loadRounds();
 }
 
-// 🔹 REPLACE
+
+// 🔹 PREPARE REPLACE
 function prepareReplace(round){
   document.getElementById("round").value = round;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// 🔹 POPUP
+
+// 🔹 POPUP VIEW
 function openPopup(src){
-  document.getElementById("popup").style.display="flex";
-  document.getElementById("popupImg").src=src;
-}
-document.getElementById("popup").onclick = () =>
-  document.getElementById("popup").style.display="none";
-
-// 🔴 COUNTDOWN
-async function showUpdate(round){
-  const overlay = document.getElementById("updateOverlay");
-  const text = document.getElementById("updateText");
-  const count = document.getElementById("countdown");
-
-  overlay.style.display="flex";
-  text.innerHTML = `🔴 Updating Round ${round}`;
-
-  for(let i=10;i>=1;i--){
-    count.innerHTML=i;
-    await new Promise(r=>setTimeout(r,1000));
-  }
-
-  overlay.style.display="none";
+  document.getElementById("popup").style.display = "flex";
+  document.getElementById("popupImg").src = src;
 }
 
-// 🔥 REALTIME LISTENER
-let lastRound=null;
+// CLOSE POPUP
+document.getElementById("popup").onclick = () => {
+  document.getElementById("popup").style.display = "none";
+};
 
-function listenUpdates(){
-  const lac=document.getElementById("lac").value;
 
-  db.collection("lacData")
-    .doc(lac)
-    .collection("rounds")
-    .orderBy("time","desc")
-    .limit(1)
-    .onSnapshot(snap=>{
-      snap.forEach(doc=>{
-        const d=doc.data();
-
-        if(lastRound===null){
-          lastRound=d.round;
-          return;
-        }
-
-        if(d.round!==lastRound){
-          lastRound=d.round;
-
-          showUpdate(d.round);
-
-          setTimeout(()=>{
-            loadGrid();
-            loadRounds();
-          },10000);
-        }
-      });
-    });
-}
-
-// INIT
+// 🔹 EVENTS
 document.getElementById("lac").addEventListener("change", loadRounds);
+
+
+// 🔹 INIT
 loadGrid();
 loadRounds();
-listenUpdates();
 
 </script>
-
 </body>
 </html>
