@@ -9,15 +9,9 @@ const firebaseConfig = {
   messagingSenderId: "653096453446",
   appId: "1:653096453446:web:d1cd5e3db24153a4739147"
 };
-
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Initialize Firestore
 const db = firebase.firestore();
-
-// Make db globally accessible
 window.db = db;
 
-// Optional: console check
 console.log("Firebase Connected ✅");
