@@ -110,7 +110,8 @@ async function upload() {
   formData.append("file", file);
 
   // ⚠️ IMPORTANT — exact preset name
-  formData.append("upload_preset", "election_upload");
+  formData.append("upload_preset", "upload_test_1");
+  formData.append("cloud_name", "dekoodjy1");
 
   try {
     const res = await fetch(
