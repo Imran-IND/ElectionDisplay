@@ -15,11 +15,15 @@
 console.log("LAC Page Loaded ✅");
 
 const params = new URLSearchParams(window.location.search);
-const lac = params.get("name");
+let lac = params.get("name");
+
+// 🔥 fallback (VERY IMPORTANT)
+if (!lac) {
+  lac = "Lakhipur"; // default if nothing passed
+}
 
 let currentTime = 0;
 
-// 🔁 Real-time listener
 db.collection("lacData").doc(lac)
 .onSnapshot((doc) => {
   if (!doc.exists) return;
@@ -33,7 +37,7 @@ db.collection("lacData").doc(lac)
 });
 
 function startCountdown(data) {
-  let count = 5;
+  let count = 3; // faster
   const cd = document.getElementById("countdown");
 
   const interval = setInterval(() => {
