@@ -95,7 +95,7 @@ button {
 
 <script>
 
-// 🔥 CLOUDINARY UPLOAD
+// 🔥 CLOUDINARY UPLOAD (FINAL FIXED)
 async function upload() {
   const lac = document.getElementById("lac").value;
   const round = document.getElementById("round").value;
@@ -108,48 +108,51 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "final_upload");
+  formData.append("upload_preset", "final_upload"); // must exist in Cloudinary
 
   try {
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dekoodjy1/image/upload",
-      {
-        method: "POST",
-        body: formData
-      }
-    );
+    const res = await fetch("https://api.cloudinary.com/v1_1/dekoodjy1/image/upload", {
+      method: "POST",
+      body: formData
+    });
 
     const data = await res.json();
-    console.log("Cloudinary:", data);
+    console.log("Cloudinary Response:", data);
 
+    // ✅ Proper error handling
     if (!data.secure_url) {
-      alert("❌ Upload failed");
+      alert("❌ Upload failed: " + (data.error?.message || "Unknown error"));
       return;
     }
 
+    // ✅ Save to Firestore
     await db.collection("lacData")
       .doc(lac)
       .collection("rounds")
       .doc("round" + round)
       .set({
         fileData: data.secure_url,
-        round,
-        lac,
+        round: Number(round),
+        lac: lac,
         time: Date.now()
       });
 
     alert("✅ Upload Success");
+
+    fileInput.value = "";
+    document.getElementById("round").value = "";
 
     loadGrid();
     loadRounds();
 
   } catch (err) {
     console.error(err);
-    alert("❌ Error uploading");
+    alert("❌ Network / Upload error");
   }
 }
 
-// 🔹 GRID
+
+// 🔹 GRID (fixed placeholder)
 async function loadGrid(){
   const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
   const grid = document.getElementById("grid");
@@ -163,7 +166,7 @@ async function loadGrid(){
       .limit(1)
       .get();
 
-    let img = "https://via.placeholder.com/300x200?text=No+Image";
+    let img = "https://dummyimage.com/300x200/000/fff&text=No+Image"; // ✅ fixed
 
     snap.forEach(d=>{
       img = d.data().fileData;
@@ -177,6 +180,7 @@ async function loadGrid(){
     `;
   }
 }
+
 
 // 🔹 ROUND LIST
 async function loadRounds(){
@@ -197,11 +201,12 @@ async function loadRounds(){
     div.innerHTML += `
       <div class="roundBox">
         <h3>${lac} - Round ${d.round}</h3>
-        <img src="${d.fileData}">
+        <img src="${d.fileData}" width="300">
       </div>
     `;
   });
 }
+
 
 // INIT
 document.getElementById("lac").addEventListener("change", loadRounds);
