@@ -122,7 +122,20 @@ async function upload() {
     );
 
     const data = await res.json();
-    console.log("Cloudinary:", data);
+
+// 🔥 DEBUG START
+console.log("FULL RESPONSE:", data);
+
+if (data.error) {
+  alert("❌ ERROR: " + JSON.stringify(data.error));
+  return;
+}
+// 🔥 DEBUG END
+
+if (!data.secure_url) {
+  alert("❌ Upload failed - no URL");
+  return;
+}
 
     // 🔥 SHOW FULL ERROR
     if (data.error) {
