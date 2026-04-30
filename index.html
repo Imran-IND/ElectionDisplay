@@ -69,24 +69,30 @@ function previewFile() {
 }
 
 async function uploadFile() {
+  console.log("Publish clicked");
+
   const lac = document.getElementById("lac").value;
 
   if (!base64Data) {
-    alert("Preview first");
+    alert("Please click Preview first ❗");
     return;
   }
 
   try {
+    console.log("Uploading to Firebase...", lac);
+
     await db.collection("lacData").doc(lac).set({
       fileData: base64Data,
       type: fileType,
       updatedAt: Date.now()
     });
 
-    alert("Uploaded Successfully");
+    console.log("Upload success");
+    alert("Uploaded Successfully ✅");
+
   } catch (error) {
-    console.error(error);
-    alert("Upload Failed");
+    console.error("Upload error:", error);
+    alert("Error: " + error.message);
   }
 }
 
