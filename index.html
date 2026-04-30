@@ -51,7 +51,6 @@ button {
   width:100%;
   height:180px;
   object-fit:contain;
-  background:black;
   cursor:pointer;
 }
 
@@ -66,14 +65,33 @@ button {
   cursor:pointer;
 }
 
-.deleteBtn {
-  background:red;
-  margin-top:5px;
+.deleteBtn { background:red; }
+.replaceBtn { background:orange; }
+
+/* 🔴 FULL SCREEN COUNTDOWN */
+#updateOverlay {
+  position:fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  background:black;
+  color:white;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  z-index:9999;
+  text-align:center;
 }
 
-.replaceBtn {
-  background:orange;
-  margin-top:5px;
+#updateText {
+  font-size:4vw;
+  font-weight:bold;
+}
+
+#countdown {
+  font-size:18vw;
+  font-weight:bold;
+  margin-top:20px;
 }
 </style>
 </head>
@@ -105,17 +123,15 @@ button {
 <div id="roundList"></div>
 
 <!-- 🔹 POPUP -->
-<div id="popup" style="
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.9);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
-">
-  <img id="popupImg" style="max-width:90%; max-height:90%;">
+<div id="popup" style="position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.9);display:none;justify-content:center;align-items:center;z-index:999;">
+  <img id="popupImg" style="max-width:90%;max-height:90%;">
+</div>
+
+<!-- 🔴 COUNTDOWN OVERLAY -->
+<div id="updateOverlay">
+  <div id="updateText"></div>
+  <div id="countdown"></div>
 </div>
 
 <!-- Firebase -->
@@ -124,6 +140,14 @@ button {
 <script src="firebase.js"></script>
 
 <script>
+
+// 🔹 URL LAC (for TV)
+const urlParams = new URLSearchParams(window.location.search);
+const selectedLacFromURL = urlParams.get("lac");
+
+if (selectedLacFromURL) {
+  document.getElementById("lac").value = selectedLacFromURL;
+}
 
 // 🔥 UPLOAD / REPLACE
 async function upload() {
@@ -138,53 +162,34 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "upload_test_1"); // ⚠️ your preset
+  formData.append("upload_preset", "upload_test_1");
 
-  try {
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dekoojdy1/image/upload",
-      {
-        method: "POST",
-        body: formData
-      }
-    );
+  const res = await fetch(
+    "https://api.cloudinary.com/v1_1/dekoojdy1/image/upload",
+    { method: "POST", body: formData }
+  );
 
-    const data = await res.json();
-    console.log("FULL RESPONSE:", data);
+  const data = await res.json();
 
-    if (data.error) {
-      alert("❌ " + data.error.message);
-      return;
-    }
-
-    if (!data.secure_url) {
-      alert("Upload failed");
-      return;
-    }
-
-    // 🔁 Replace if exists
-    await db.collection("lacData")
-      .doc(lac)
-      .collection("rounds")
-      .doc("round" + round)
-      .set({
-        fileData: data.secure_url,
-        round,
-        lac,
-        time: Date.now()
-      });
-
-    alert("✅ Uploaded / Replaced");
-
-    fileInput.value = "";
-
-    loadGrid();
-    loadRounds();
-
-  } catch (err) {
-    console.error(err);
-    alert("Upload error");
+  if (data.error) {
+    alert(data.error.message);
+    return;
   }
+
+  await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .doc("round" + round)
+    .set({
+      fileData: data.secure_url,
+      round,
+      lac,
+      time: Date.now()
+    });
+
+  alert("Uploaded");
+  loadGrid();
+  loadRounds();
 }
 
 // 🔹 GRID
@@ -203,9 +208,7 @@ async function loadGrid(){
 
     let img = "https://dummyimage.com/300x200/000/fff&text=No+Image";
 
-    snap.forEach(d=>{
-      img = d.data().fileData;
-    });
+    snap.forEach(d=> img = d.data().fileData);
 
     grid.innerHTML += `
       <div class="card">
@@ -235,11 +238,8 @@ async function loadRounds(){
     div.innerHTML += `
       <div class="roundBox">
         <h3>${lac} - Round ${d.round}</h3>
-
         <img src="${d.fileData}" onclick="openPopup('${d.fileData}')">
-
         <br>
-
         <button class="deleteBtn" onclick="deleteRound('${lac}','${d.round}')">Delete</button>
         <button class="replaceBtn" onclick="prepareReplace('${d.round}')">Replace</button>
       </div>
@@ -249,21 +249,17 @@ async function loadRounds(){
 
 // 🔹 DELETE
 async function deleteRound(lac, round){
-  if(!confirm("Delete this round?")) return;
-
   await db.collection("lacData")
     .doc(lac)
     .collection("rounds")
     .doc("round"+round)
     .delete();
 
-  alert("Deleted");
-
   loadGrid();
   loadRounds();
 }
 
-// 🔹 PREPARE REPLACE
+// 🔹 REPLACE
 function prepareReplace(round){
   document.getElementById("round").value = round;
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -271,18 +267,68 @@ function prepareReplace(round){
 
 // 🔹 POPUP
 function openPopup(src){
-  document.getElementById("popup").style.display = "flex";
-  document.getElementById("popupImg").src = src;
+  document.getElementById("popup").style.display="flex";
+  document.getElementById("popupImg").src=src;
+}
+document.getElementById("popup").onclick = () =>
+  document.getElementById("popup").style.display="none";
+
+// 🔴 COUNTDOWN
+async function showUpdate(round){
+  const overlay = document.getElementById("updateOverlay");
+  const text = document.getElementById("updateText");
+  const count = document.getElementById("countdown");
+
+  overlay.style.display="flex";
+  text.innerHTML = `🔴 Updating Round ${round}`;
+
+  for(let i=10;i>=1;i--){
+    count.innerHTML=i;
+    await new Promise(r=>setTimeout(r,1000));
+  }
+
+  overlay.style.display="none";
 }
 
-document.getElementById("popup").onclick = function(){
-  this.style.display = "none";
-};
+// 🔥 REALTIME LISTENER
+let lastRound=null;
+
+function listenUpdates(){
+  const lac=document.getElementById("lac").value;
+
+  db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .orderBy("time","desc")
+    .limit(1)
+    .onSnapshot(snap=>{
+      snap.forEach(doc=>{
+        const d=doc.data();
+
+        if(lastRound===null){
+          lastRound=d.round;
+          return;
+        }
+
+        if(d.round!==lastRound){
+          lastRound=d.round;
+
+          showUpdate(d.round);
+
+          setTimeout(()=>{
+            loadGrid();
+            loadRounds();
+          },10000);
+        }
+      });
+    });
+}
 
 // INIT
 document.getElementById("lac").addEventListener("change", loadRounds);
 loadGrid();
 loadRounds();
+listenUpdates();
 
 </script>
 
