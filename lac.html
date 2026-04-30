@@ -38,7 +38,7 @@ body {
   opacity:1;
 }
 
-/* 🔴 COUNTDOWN */
+/* 🔴 COUNTDOWN OVERLAY */
 #overlay {
   position:fixed;
   width:100%;
@@ -62,6 +62,7 @@ body {
 <div id="loader">📡 Waiting for data...</div>
 <img id="screen" class="fade">
 
+<!-- 🔴 OVERLAY -->
 <div id="overlay">
   <div id="updateText"></div>
   <div id="countdown"></div>
@@ -78,10 +79,13 @@ const lac = params.get("name") || "Lakhipur";
 
 const img = document.getElementById("screen");
 const loader = document.getElementById("loader");
+
+const overlay = document.getElementById("overlay");
 const countdown = document.getElementById("countdown");
+const updateText = document.getElementById("updateText");
 
 let currentImage = "";
-let isUpdating = false; // 🔥 IMPORTANT LOCK
+let isUpdating = false;
 
 // 🔴 LIVE LISTENER
 db.collection("lacData")
@@ -91,7 +95,7 @@ db.collection("lacData")
 .limit(1)
 .onSnapshot(async (snap) => {
 
-  // ❌ NO DATA → SHOW MESSAGE
+  // ❌ NO DATA
   if (snap.empty) {
     img.src = "";
     img.style.display = "none";
@@ -99,36 +103,32 @@ db.collection("lacData")
     loader.innerText = "📡 Data will be updated soon...";
     loader.style.display = "block";
 
-    countdown.style.display = "none";
+    overlay.style.display = "none";
     return;
   }
 
   const doc = snap.docs[0];
   const newImage = doc.data().fileData;
+  const round = doc.data().round;
 
-  // ❌ SAME IMAGE → DO NOTHING
+  // ❌ SAME IMAGE
   if (newImage === currentImage) return;
 
-  // ❌ IF ALREADY UPDATING → IGNORE NEW TRIGGER
+  // ❌ PREVENT MULTIPLE TRIGGERS
   if (isUpdating) return;
 
-  isUpdating = true; // 🔒 LOCK
-
+  isUpdating = true;
   currentImage = newImage;
 
-  // 🔥 SHOW COUNTDOWN
-  img.classList.remove("show");
-
-  loader.innerText = "📡 Updating...";
-  loader.style.display = "block";
-
-  countdown.style.display = "block";
+  // 🔴 SHOW OVERLAY COUNTDOWN
+  overlay.style.display = "flex";
+  updateText.innerText = `Updating Round ${round}`;
 
   let count = 10;
-
   countdown.innerText = count;
 
   const interval = setInterval(() => {
+
     count--;
     countdown.innerText = count;
 
@@ -141,25 +141,26 @@ db.collection("lacData")
 
       temp.onload = () => {
 
-        img.src = newImage;
+        overlay.style.display = "none";
+
         img.style.display = "block";
+        img.classList.remove("show");
 
         setTimeout(() => {
+          img.src = newImage;
           img.classList.add("show");
 
           loader.style.display = "none";
-          countdown.style.display = "none";
-
-          isUpdating = false; // 🔓 UNLOCK
-        }, 200);
+          isUpdating = false;
+        }, 300);
       };
     }
 
-  }, 1000); // ✅ EXACT 1 SECOND
+  }, 1000);
 
 });
 
 </script>
-  
+
 </body>
 </html>
