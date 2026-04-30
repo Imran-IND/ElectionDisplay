@@ -17,12 +17,14 @@ body {
   font-family:Arial;
 }
 
+/* Image */
 #screen {
   width:100vw;
   height:100vh;
   object-fit:contain;
 }
 
+/* Loader */
 #loader {
   position:absolute;
   color:white;
@@ -30,16 +32,16 @@ body {
   text-align:center;
 }
 
-/* Fade */
+/* ULTRA SMOOTH FADE */
 .fade {
   opacity:0;
-  transition:0.5s;
+  transition:0.25s ease-in-out;
 }
 .show {
   opacity:1;
 }
 
-/* 🔴 FULL SCREEN OVERLAY */
+/* COUNTDOWN OVERLAY */
 #overlay {
   position:fixed;
   width:100%;
@@ -85,7 +87,6 @@ const lac = params.get("name") || "Lakhipur";
 
 const img = document.getElementById("screen");
 const loader = document.getElementById("loader");
-
 const overlay = document.getElementById("overlay");
 const countdown = document.getElementById("countdown");
 const updateText = document.getElementById("updateText");
@@ -93,7 +94,7 @@ const updateText = document.getElementById("updateText");
 let currentImage = "";
 let isUpdating = false;
 
-// 🔴 MAIN LISTENER
+// 🔴 REAL-TIME LISTENER
 db.collection("lacData")
 .doc(lac)
 .collection("rounds")
@@ -101,14 +102,16 @@ db.collection("lacData")
 .limit(1)
 .onSnapshot(async (snap) => {
 
+  // ❌ NO DATA (ignore during update)
   if (snap.empty) {
+    if (isUpdating) return;
+
     img.src = "";
     img.style.display = "none";
 
     loader.innerText = "📡 Data will be updated soon...";
     loader.style.display = "block";
 
-    overlay.style.display = "none";
     return;
   }
 
@@ -116,50 +119,50 @@ db.collection("lacData")
   const newImage = doc.data().fileData;
   const round = doc.data().round;
 
-  // same image → ignore
+  // same image → skip
   if (newImage === currentImage) return;
 
-  // prevent double trigger
+  // prevent duplicate triggers
   if (isUpdating) return;
 
   isUpdating = true;
-  currentImage = newImage;
 
-  // 🔴 SHOW OVERLAY
+  // 🔴 SHOW COUNTDOWN
   overlay.style.display = "flex";
   updateText.innerText = `Updating Round ${round}`;
 
-  // 🔥 PROPER COUNTDOWN
-  for (let i = 10; i >= 1; i--) {
-
-    countdown.innerText = i;
-
-    // force UI update
-    await new Promise(requestAnimationFrame);
-
-    // wait 1 sec
-    await new Promise(r => setTimeout(r, 1000));
-  }
-
-  // 🔥 LOAD IMAGE AFTER COUNTDOWN
+  // 🔥 PRELOAD IMAGE EARLY (IMPORTANT)
   const temp = new Image();
   temp.src = newImage;
 
-  temp.onload = () => {
+  // 🔥 COUNTDOWN (ULTRA SMOOTH)
+  for (let i = 10; i >= 1; i--) {
+    countdown.innerText = i;
 
-    overlay.style.display = "none";
+    await new Promise(requestAnimationFrame);
+    await new Promise(r => setTimeout(r, 1000));
+  }
 
-    img.style.display = "block";
-    img.classList.remove("show");
+  // 🔥 WAIT UNTIL IMAGE IS READY
+  await new Promise(resolve => {
+    if (temp.complete) resolve();
+    else temp.onload = resolve;
+  });
 
-    setTimeout(() => {
-      img.src = newImage;
-      img.classList.add("show");
+  // 🔥 SET IMAGE BEFORE HIDING OVERLAY
+  img.src = newImage;
+  currentImage = newImage;
 
-      loader.style.display = "none";
-      isUpdating = false;
-    }, 300);
-  };
+  overlay.style.display = "none";
+
+  img.style.display = "block";
+  img.classList.remove("show");
+
+  setTimeout(() => {
+    img.classList.add("show");
+    loader.style.display = "none";
+    isUpdating = false;
+  }, 100);
 
 });
 
