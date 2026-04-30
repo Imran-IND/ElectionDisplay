@@ -17,14 +17,12 @@ body {
   font-family:Arial;
 }
 
-/* Image */
 #screen {
   width:100vw;
   height:100vh;
   object-fit:contain;
 }
 
-/* Message */
 #loader {
   position:absolute;
   color:white;
@@ -32,20 +30,19 @@ body {
   text-align:center;
 }
 
-/* Fade */
 .fade {
   opacity:0;
-  transition:opacity 0.5s ease-in-out;
+  transition:0.5s;
 }
 .show {
   opacity:1;
 }
 
-/* 🔴 COUNTDOWN OVERLAY */
+/* 🔴 COUNTDOWN */
 #overlay {
   position:fixed;
-  top:0; left:0;
-  width:100vw; height:100vh;
+  width:100%;
+  height:100%;
   background:black;
   color:white;
   display:none;
@@ -55,37 +52,27 @@ body {
   z-index:9999;
 }
 
-#updateText {
-  font-size:4vw;
-}
-
-#countdown {
-  font-size:18vw;
-  font-weight:bold;
-  margin-top:20px;
-}
+#updateText { font-size:4vw; }
+#countdown { font-size:18vw; font-weight:bold; }
 </style>
 </head>
 
 <body>
 
 <div id="loader">📡 Waiting for data...</div>
-<img id="screen" class="fade" />
+<img id="screen" class="fade">
 
-<!-- 🔴 COUNTDOWN -->
 <div id="overlay">
   <div id="updateText"></div>
   <div id="countdown"></div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="firebase.js"></script>
 
 <script>
 
-// 🔹 GET LAC
 const params = new URLSearchParams(window.location.search);
 const lac = params.get("name") || "Lakhipur";
 
@@ -100,101 +87,96 @@ let currentImage = "";
 let lastRound = null;
 let isCounting = false;
 
-// 🔴 COUNTDOWN FUNCTION (FIXED)
+// 🔴 COUNTDOWN
 async function showCountdown(round) {
-
-  if (isCounting) return; // prevent duplicate
+  if (isCounting) return;
   isCounting = true;
 
   overlay.style.display = "flex";
-  updateText.innerHTML = `🔴 Updating Round ${round}`;
+  updateText.innerText = `Updating Round ${round}`;
 
   for (let i = 10; i >= 1; i--) {
-    countdown.innerHTML = i;
-    await new Promise(resolve => setTimeout(resolve, 1000)); // exact 1 sec
+    countdown.innerText = i;
+    await new Promise(r => setTimeout(r, 1000));
   }
 
   overlay.style.display = "none";
   isCounting = false;
 }
 
-// 🔹 IMAGE UPDATE FUNCTION
-function updateImage(newImage) {
-
+// 🔴 IMAGE UPDATE
+function updateImage(url) {
   loader.innerText = "🔄 Loading...";
   loader.style.display = "block";
 
   const temp = new Image();
-  temp.src = newImage;
+  temp.src = url;
 
   temp.onload = () => {
     img.classList.remove("show");
 
     setTimeout(() => {
-      img.src = newImage;
+      img.src = url;
       img.classList.add("show");
-
       loader.style.display = "none";
     }, 300);
   };
 }
 
-// 🔴 REAL-TIME LISTENER
+// 🔴 REALTIME
 db.collection("lacData")
-  .doc(lac)
-  .collection("rounds")
-  .orderBy("time","desc")
-  .limit(1)
-  .onSnapshot(async snap => {
+.doc(lac)
+.collection("rounds")
+.orderBy("time","desc")
+.limit(1)
+.onSnapshot(async snap => {
 
-    // ❌ NO DATA (deleted)
-    if (snap.empty) {
+  if (snap.empty) {
+    currentImage = "";
+    lastRound = null;
 
-      currentImage = "";
-      lastRound = null;
+    img.src = "";
+    img.classList.remove("show");
 
-      img.src = "";
-      img.classList.remove("show");
+    loader.innerText = "📡 Data will be updated soon...";
+    loader.style.display = "block";
+    return;
+  }
 
-      loader.innerText = "📡 Data will be updated soon...";
-      loader.style.display = "block";
+  snap.forEach(async doc => {
 
+    const d = doc.data();
+    const newImage = d.fileData;
+    const newRound = d.round;
+
+    // First load
+    if (lastRound === null) {
+      lastRound = newRound;
+      updateImage(newImage);
+      currentImage = newImage;
       return;
     }
 
-    snap.forEach(async doc => {
+    // New round
+    if (newRound !== lastRound) {
+      lastRound = newRound;
 
-      const data = doc.data();
-      const newImage = data.fileData;
-      const newRound = data.round;
-
-      // First load (no countdown)
-      if (lastRound === null) {
-        lastRound = newRound;
-        updateImage(newImage);
-        return;
-      }
-
-      // 🔴 NEW ROUND → COUNTDOWN FIRST
-      if (newRound !== lastRound) {
-        lastRound = newRound;
-
-        await showCountdown(newRound);
-
-        updateImage(newImage);
-        return;
-      }
-
-      // Same round, different image
-      if (newImage !== currentImage) {
-        updateImage(newImage);
-      }
+      await showCountdown(newRound);
+      updateImage(newImage);
 
       currentImage = newImage;
+      return;
+    }
 
-    });
+    // Same round image change
+    if (newImage !== currentImage) {
+      updateImage(newImage);
+      currentImage = newImage;
+    }
 
   });
+
+});
 
 </script>
 
