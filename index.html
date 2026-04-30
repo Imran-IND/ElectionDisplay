@@ -109,7 +109,7 @@ async function upload() {
   const formData = new FormData();
   formData.append("file", file);
 
-  // ✅ use THIS preset
+  // ✅ correct preset
   formData.append("upload_preset", "election_upload");
 
   try {
@@ -124,6 +124,7 @@ async function upload() {
     const data = await res.json();
     console.log("Cloudinary:", data);
 
+    // ❌ handle error properly
     if (data.error) {
       alert("❌ " + data.error.message);
       return;
