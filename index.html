@@ -107,16 +107,32 @@ function previewFile() {
 
 async function uploadFile() {
   const lac = document.getElementById("lac").value;
-  if (!base64Data) return alert("Preview first");
 
-  await db.collection("lacData").doc(lac).set({
-    fileData: base64Data,
-    type: fileType,
-    updatedAt: Date.now()
-  });
+  if (!base64Data) {
+    alert("Preview first ❗");
+    return;
+  }
 
-  alert("Uploaded / Replaced ✅");
-  loadCurrent();
+  try {
+    await db.collection("lacData").doc(lac).set({
+      fileData: base64Data,
+      type: fileType,
+      updatedAt: Date.now()
+    });
+
+    alert("Replaced Successfully ✅");
+
+    // Clear preview after upload
+    base64Data = "";
+    document.getElementById("preview").innerHTML = "";
+
+    // Refresh current view
+    loadCurrent();
+
+  } catch (err) {
+    console.error(err);
+    alert("Upload failed ❌");
+  }
 }
 
 async function deleteSelected() {
