@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Election Dashboard</title>
+
+<link rel="icon" href="data:,">
+
+<style>
+body {
+  margin:0;
+  background:#0b0b0b;
+  color:white;
+  font-family:Arial;
+}
+
+h2 {
+  text-align:center;
+  margin-top:15px;
+}
+
+/* Top bar */
+.top-bar {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:20px;
+  flex-wrap:wrap;
+}
+
+input, select, button {
+  padding:10px;
+  border-radius:5px;
+  border:none;
+}
+
+button {
+  background:#4CAF50;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover {
+  background:#45a049;
+}
+
+/* Grid */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:15px;
+  padding:20px;
+}
+
+.card {
+  background:#111;
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.card:hover {
+  transform:scale(1.05);
+}
+
+.card img {
+  width:100%;
+  height:180px;
+  object-fit:contain;
+  background:black;
+  border-radius:5px;
+}
+
+/* Round List */
+.roundBox {
+  border:1px solid #333;
+  margin:10px;
+  padding:10px;
+  border-radius:8px;
+}
+
+.roundBox img {
+  width:200px;
+}
+
+/* Modal */
+.modal {
+  position:fixed;
+  top:0; left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.95);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal img {
+  max-width:90%;
+  max-height:90%;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Election Dashboard</h2>
+
+<div class="top-bar">
+  <select id="lac">
+    <option>Lakhipur</option>
+    <option>Udharbond</option>
+    <option>Borkhola</option>
+    <option>Katigorah</option>
+    <option>Silchar</option>
+    <option>Sonai</option>
+    <option>Dholai</option>
+  </select>
+
+  <input type="number" id="round" placeholder="Round No">
+
+  <input type="file" id="file">
+
+  <button onclick="upload()">Upload</button>
+</div>
+
+<h3 style="text-align:center;">Live Screens</h3>
+<div id="grid" class="grid"></div>
+
+<h3 style="text-align:center;">Round List</h3>
+<div id="roundList"></div>
+
+<div id="modal" class="modal" onclick="closeModal()">
+  <img id="modalImg">
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="firebase.js"></script>
+
+<script>
+
+// Upload using STORAGE (FIXED)
+async function upload() {
+  const lac = document.getElementById("lac").value;
+  const round = document.getElementById("round").value;
+  const fileInput = document.getElementById("file");
+
+  if (!round) return alert("Enter round ❗");
+  if (!fileInput.files.length) return alert("Select file ❗");
+
+  const file = fileInput.files[0];
+
+  // Upload to Firebase Storage
+  const storageRef = storage
+    .ref()
+    .child(`lacData/${lac}/round${round}_${Date.now()}`);
+
+  await storageRef.put(file);
+
+  const url = await storageRef.getDownloadURL();
+
+  // Save URL in Firestore
+  await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .doc("round" + round)
+    .set({
+      fileData: url,
+      round: round,
+      lac: lac,
+      time: Date.now()
+    });
+
+  alert(`Uploaded ${lac} - Round ${round} `);
+
+  fileInput.value = "";
+  document.getElementById("round").value = "";
+
+  loadGrid();
+  loadRounds();
+}
+
+// Modal
+function openModal(src){
+  document.getElementById("modalImg").src = src;
+  document.getElementById("modal").style.display="flex";
+}
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+}
+
+// Grid
+async function loadGrid(){
+  const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
+  const grid = document.getElementById("grid");
+
+  grid.innerHTML="";
+
+  for(let lac of lacs){
+    const snap = await db.collection("lacData")
+      .doc(lac)
+      .collection("rounds")
+      .orderBy("time","desc")
+      .limit(1)
+      .get();
+
+    let img = "no-image.png";
+
+    snap.forEach(d=>{
+      img = d.data().fileData;
+    });
+
+    grid.innerHTML += `
+      <div class="card" onclick="openModal('${img}')">
+        <h4> ${lac}</h4>
+        <img src="${img}">
+      </div>
+    `;
+  }
+}
+
+// Round List
+async function loadRounds(){
+  const lac = document.getElementById("lac").value;
+  const div = document.getElementById("roundList");
+
+  const snap = await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .orderBy("time","desc")
+    .get();
+
+  div.innerHTML="";
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+
+    div.innerHTML += `
+      <div class="roundBox">
+        <h3>📍 ${lac} - Round ${d.round}</h3>
+        <img src="${d.fileData}">
+        <br><br>
+        <button onclick="deleteRound('${lac}','${doc.id}')">Delete</button>
+        <button onclick="openModal('${d.fileData}')">View</button>
+      </div>
+    `;
+  });
+}
+
+// Delete
+async function deleteRound(lac,id){
+  await db.collection("lacData")
+    .doc(lac)
+    .collection("rounds")
+    .doc(id)
+    .delete();
+
+  loadRounds();
+  loadGrid();
+}
+
+// Init
+document.getElementById("lac").addEventListener("change", loadRounds);
+
+loadGrid();
+loadRounds();
+
+</script>
+
+</body>
+</html>
