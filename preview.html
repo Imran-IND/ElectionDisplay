@@ -1,98 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Preview Panel</title>
+  <title>Live Preview</title>
   <link rel="stylesheet" href="style.css">
-
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: white;
-      font-family: Arial;
-    }
-
-    h2 {
-      text-align: center;
-      padding: 10px;
-      margin: 0;
-      background: #000;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-auto-rows: 45vh;
-      gap: 8px;
-      padding: 8px;
-    }
-
-    .box {
-      border: 2px solid #333;
-      display: flex;
-      flex-direction: column;
-      background: black;
-    }
-
-    .title {
-      background: #222;
-      padding: 5px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    iframe {
-      flex: 1;
-      width: 100%;
-      border: none;
-      background: black;
-    }
-  </style>
 </head>
 
 <body>
 
-<h2>📺 Live LAC Preview Panel</h2>
+<h2 style="text-align:center;">📺 Live Dashboard</h2>
 
 <div class="grid">
 
-  <div class="box">
+  <div class="box" onclick="openFull('Lakhipur')">
     <div class="title">Lakhipur</div>
     <iframe src="lac.html?name=Lakhipur"></iframe>
   </div>
 
-  <div class="box">
+  <div class="box" onclick="openFull('Udharbond')">
     <div class="title">Udharbond</div>
     <iframe src="lac.html?name=Udharbond"></iframe>
   </div>
 
-  <div class="box">
+  <div class="box" onclick="openFull('Borkhola')">
     <div class="title">Borkhola</div>
     <iframe src="lac.html?name=Borkhola"></iframe>
   </div>
 
-  <div class="box">
+  <div class="box" onclick="openFull('Katigorah')">
     <div class="title">Katigorah</div>
     <iframe src="lac.html?name=Katigorah"></iframe>
   </div>
 
-  <div class="box">
+  <div class="box" onclick="openFull('Silchar')">
     <div class="title">Silchar</div>
     <iframe src="lac.html?name=Silchar"></iframe>
   </div>
 
-  <div class="box">
+  <div class="box" onclick="openFull('Sonai')">
     <div class="title">Sonai</div>
     <iframe src="lac.html?name=Sonai"></iframe>
   </div>
 
-  <div class="box">
+  <div class="box" onclick="openFull('Dholai')">
     <div class="title">Dholai</div>
     <iframe src="lac.html?name=Dholai"></iframe>
   </div>
 
 </div>
+
+<script>
+function openFull(lac) {
+  window.open("lac.html?name=" + lac, "_blank");
+}
+</script>
 
 </body>
 </html>
