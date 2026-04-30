@@ -108,8 +108,6 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
-
-  // ✅ correct preset
   formData.append("upload_preset", "election_upload");
 
   try {
@@ -122,11 +120,16 @@ async function upload() {
     );
 
     const data = await res.json();
-    console.log("Cloudinary:", data);
+    console.log(data);
 
-    // ❌ handle error properly
+    // 🔥 Proper error handling
     if (data.error) {
       alert("❌ " + data.error.message);
+      return;
+    }
+
+    if (!data.secure_url) {
+      alert("❌ Upload failed");
       return;
     }
 
@@ -136,7 +139,7 @@ async function upload() {
       .doc("round" + round)
       .set({
         fileData: data.secure_url,
-        round: Number(round),
+        round,
         lac,
         time: Date.now()
       });
@@ -148,7 +151,7 @@ async function upload() {
 
   } catch (err) {
     console.error(err);
-    alert("❌ Upload failed");
+    alert("❌ Error uploading");
   }
 }
 // 🔹 GRID (fixed placeholder)
