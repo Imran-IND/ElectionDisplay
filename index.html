@@ -108,24 +108,27 @@ async function upload() {
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("upload_preset", "final_upload"); // must exist in Cloudinary
+
+  // ✅ use THIS preset
+  formData.append("upload_preset", "election_upload");
 
   try {
-    const res = await fetch("https://api.cloudinary.com/v1_1/dekoodjy1/image/upload", {
-      method: "POST",
-      body: formData
-    });
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dekoodjy1/image/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
 
     const data = await res.json();
-    console.log("Cloudinary Response:", data);
+    console.log("Cloudinary:", data);
 
-    // ✅ Proper error handling
-    if (!data.secure_url) {
-      alert("❌ Upload failed: " + (data.error?.message || "Unknown error"));
+    if (data.error) {
+      alert("❌ " + data.error.message);
       return;
     }
 
-    // ✅ Save to Firestore
     await db.collection("lacData")
       .doc(lac)
       .collection("rounds")
@@ -133,25 +136,20 @@ async function upload() {
       .set({
         fileData: data.secure_url,
         round: Number(round),
-        lac: lac,
+        lac,
         time: Date.now()
       });
 
     alert("✅ Upload Success");
-
-    fileInput.value = "";
-    document.getElementById("round").value = "";
 
     loadGrid();
     loadRounds();
 
   } catch (err) {
     console.error(err);
-    alert("❌ Network / Upload error");
+    alert("❌ Upload failed");
   }
 }
-
-
 // 🔹 GRID (fixed placeholder)
 async function loadGrid(){
   const lacs = ["Lakhipur","Udharbond","Borkhola","Katigorah","Silchar","Sonai","Dholai"];
