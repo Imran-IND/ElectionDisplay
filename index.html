@@ -29,7 +29,14 @@
   <div id="preview"></div>
 </div>
 
+<!-- ✅ Firebase SDK (MUST be added) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<!-- ✅ Firebase Config -->
 <script src="firebase.js"></script>
+
+<!-- ✅ Your Script -->
 <script>
 let base64Data = "";
 let fileType = "";
@@ -68,20 +75,30 @@ async function uploadFile() {
     return;
   }
 
-  await db.collection("lacData").doc(lac).set({
-    fileData: base64Data,
-    type: fileType,
-    updatedAt: Date.now()
-  });
+  try {
+    await db.collection("lacData").doc(lac).set({
+      fileData: base64Data,
+      type: fileType,
+      updatedAt: Date.now()
+    });
 
-  alert("Uploaded Successfully");
+    alert("Uploaded Successfully");
+  } catch (error) {
+    console.error(error);
+    alert("Upload Failed");
+  }
 }
 
 async function deleteData() {
   const lac = document.getElementById("lac").value;
 
-  await db.collection("lacData").doc(lac).delete();
-  alert("Deleted");
+  try {
+    await db.collection("lacData").doc(lac).delete();
+    alert("Deleted");
+  } catch (error) {
+    console.error(error);
+    alert("Delete Failed");
+  }
 }
 </script>
 
