@@ -32,7 +32,7 @@ body {
   text-align:center;
 }
 
-/* ULTRA SMOOTH FADE */
+/* Smooth fade */
 .fade {
   opacity:0;
   transition:0.25s ease-in-out;
@@ -41,7 +41,7 @@ body {
   opacity:1;
 }
 
-/* COUNTDOWN OVERLAY */
+/* Countdown Overlay */
 #overlay {
   position:fixed;
   width:100%;
@@ -82,6 +82,7 @@ body {
 
 <script>
 
+// 🔹 GET LAC
 const params = new URLSearchParams(window.location.search);
 const lac = params.get("name") || "Lakhipur";
 
@@ -91,7 +92,7 @@ const overlay = document.getElementById("overlay");
 const countdown = document.getElementById("countdown");
 const updateText = document.getElementById("updateText");
 
-let currentImage = "";
+let currentRound = null;
 let isUpdating = false;
 
 // 🔴 REAL-TIME LISTENER
@@ -102,56 +103,53 @@ db.collection("lacData")
 .limit(1)
 .onSnapshot(async (snap) => {
 
-  // ❌ NO DATA (ignore during update)
-  if (snap.empty) {
-    if (isUpdating) return;
+  // Ignore during update
+  if (isUpdating) return;
 
+  // No data
+  if (snap.empty) {
     img.src = "";
     img.style.display = "none";
 
     loader.innerText = "📡 Data will be updated soon...";
     loader.style.display = "block";
-
     return;
   }
 
   const doc = snap.docs[0];
   const newImage = doc.data().fileData;
-  const round = doc.data().round;
+  const newRound = doc.data().round;
 
-  // same image → skip
-  if (newImage === currentImage) return;
+  // Ignore same round
+  if (newRound === currentRound) return;
 
-  // prevent duplicate triggers
-  if (isUpdating) return;
-
+  // Lock
   isUpdating = true;
+  currentRound = newRound;
 
-  // 🔴 SHOW COUNTDOWN
+  // Show overlay
   overlay.style.display = "flex";
-  updateText.innerText = `Updating Round ${round}`;
+  updateText.innerText = `Updating Round ${newRound}`;
 
-  // 🔥 PRELOAD IMAGE EARLY (IMPORTANT)
+  // Preload image
   const temp = new Image();
   temp.src = newImage;
 
-  // 🔥 COUNTDOWN (ULTRA SMOOTH)
+  // Countdown
   for (let i = 10; i >= 1; i--) {
     countdown.innerText = i;
-
     await new Promise(requestAnimationFrame);
     await new Promise(r => setTimeout(r, 1000));
   }
 
-  // 🔥 WAIT UNTIL IMAGE IS READY
+  // Wait for image load
   await new Promise(resolve => {
     if (temp.complete) resolve();
     else temp.onload = resolve;
   });
 
-  // 🔥 SET IMAGE BEFORE HIDING OVERLAY
+  // Update image (no blank state)
   img.src = newImage;
-  currentImage = newImage;
 
   overlay.style.display = "none";
 
