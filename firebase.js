@@ -1,4 +1,4 @@
-//Firebase configuration
+// Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAtncVSR1m9lkxLdfCzWKWfa7KCsvKzXR4",
   authDomain: "electiondisplay-cd9a1.firebaseapp.com",
@@ -7,9 +7,15 @@ const firebaseConfig = {
   messagingSenderId: "653096453446",
   appId: "1:653096453446:web:d1cd5e3db24153a4739147"
 };
-firebase.initializeApp(firebaseConfig);
+irebase.initializeApp(firebaseConfig);
 
+// Firestore
 const db = firebase.firestore();
-window.db = db;
 
-console.log("Firebase Connected ✅");
+// Storage
+const storage = firebase.storage();
+
+window.db = db;
+window.storage = storage;
+
+console.log("Firebase Connected");
