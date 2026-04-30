@@ -78,107 +78,88 @@ const lac = params.get("name") || "Lakhipur";
 
 const img = document.getElementById("screen");
 const loader = document.getElementById("loader");
-
-const overlay = document.getElementById("overlay");
-const updateText = document.getElementById("updateText");
 const countdown = document.getElementById("countdown");
 
 let currentImage = "";
-let lastRound = null;
-let isCounting = false;
+let isUpdating = false; // 🔥 IMPORTANT LOCK
 
-// 🔴 COUNTDOWN
-async function showCountdown(round) {
-  if (isCounting) return;
-  isCounting = true;
-
-  overlay.style.display = "flex";
-  updateText.innerText = `Updating Round ${round}`;
-
-  for (let i = 10; i >= 1; i--) {
-    countdown.innerText = i;
-    await new Promise(r => setTimeout(r, 1000));
-  }
-
-  overlay.style.display = "none";
-  isCounting = false;
-}
-
-// 🔴 IMAGE UPDATE
-function updateImage(url) {
-  loader.innerText = "🔄 Loading...";
-  loader.style.display = "block";
-
-  const temp = new Image();
-  temp.src = url;
-
-  temp.onload = () => {
-    img.classList.remove("show");
-
-    setTimeout(() => {
-      img.src = url;
-      img.classList.add("show");
-      loader.style.display = "none";
-    }, 300);
-  };
-}
-
-// 🔴 REALTIME
+// 🔴 LIVE LISTENER
 db.collection("lacData")
 .doc(lac)
 .collection("rounds")
 .orderBy("time","desc")
 .limit(1)
-.onSnapshot(async snap => {
+.onSnapshot(async (snap) => {
 
+  // ❌ NO DATA → SHOW MESSAGE
   if (snap.empty) {
-    currentImage = "";
-    lastRound = null;
-
     img.src = "";
-    img.classList.remove("show");
+    img.style.display = "none";
 
     loader.innerText = "📡 Data will be updated soon...";
     loader.style.display = "block";
+
+    countdown.style.display = "none";
     return;
   }
 
-  snap.forEach(async doc => {
+  const doc = snap.docs[0];
+  const newImage = doc.data().fileData;
 
-    const d = doc.data();
-    const newImage = d.fileData;
-    const newRound = d.round;
+  // ❌ SAME IMAGE → DO NOTHING
+  if (newImage === currentImage) return;
 
-    // First load
-    if (lastRound === null) {
-      lastRound = newRound;
-      updateImage(newImage);
-      currentImage = newImage;
-      return;
+  // ❌ IF ALREADY UPDATING → IGNORE NEW TRIGGER
+  if (isUpdating) return;
+
+  isUpdating = true; // 🔒 LOCK
+
+  currentImage = newImage;
+
+  // 🔥 SHOW COUNTDOWN
+  img.classList.remove("show");
+
+  loader.innerText = "📡 Updating...";
+  loader.style.display = "block";
+
+  countdown.style.display = "block";
+
+  let count = 10;
+
+  countdown.innerText = count;
+
+  const interval = setInterval(() => {
+    count--;
+    countdown.innerText = count;
+
+    if (count === 0) {
+      clearInterval(interval);
+
+      // 🔥 PRELOAD IMAGE
+      const temp = new Image();
+      temp.src = newImage;
+
+      temp.onload = () => {
+
+        img.src = newImage;
+        img.style.display = "block";
+
+        setTimeout(() => {
+          img.classList.add("show");
+
+          loader.style.display = "none";
+          countdown.style.display = "none";
+
+          isUpdating = false; // 🔓 UNLOCK
+        }, 200);
+      };
     }
 
-    // New round
-    if (newRound !== lastRound) {
-      lastRound = newRound;
-
-      await showCountdown(newRound);
-      updateImage(newImage);
-
-      currentImage = newImage;
-      return;
-    }
-
-    // Same round image change
-    if (newImage !== currentImage) {
-      updateImage(newImage);
-      currentImage = newImage;
-    }
-
-  });
+  }, 1000); // ✅ EXACT 1 SECOND
 
 });
 
 </script>
-
+  
 </body>
 </html>
