@@ -83,10 +83,29 @@ body {
 
 <script>
 
-// 🔹 GET LAC
+// GET LAC FROM URL
 const params = new URLSearchParams(window.location.search);
-const lac = params.get("name") || "Lakhipur";
+let lac = params.get("name") || "Lakhipur";
 
+// ✅ Normalize (VERY IMPORTANT)
+lac = lac.trim().toLowerCase();
+
+// ✅ Map to exact Firestore names
+const LAC_MAP = {
+  lakhipur: "Lakhipur",
+  udharbond: "Udharbond",
+  borkhola: "Borkhola",
+  katigorah: "Katigorah",
+  silchar: "Silchar",
+  sonai: "Sonai",
+  dholai: "Dholai"
+};
+
+lac = LAC_MAP[lac] || "Lakhipur";
+
+console.log("📺 Listening for LAC:", lac);
+
+// ELEMENTS
 const img = document.getElementById("screen");
 const loader = document.getElementById("loader");
 const overlay = document.getElementById("overlay");
@@ -96,82 +115,79 @@ const updateText = document.getElementById("updateText");
 let lastUpdateTime = 0;
 let isUpdating = false;
 
-// 🔴 REAL-TIME LISTENER
+// REAL-TIME LISTENER
 db.collection("lacData")
-.doc(lac)
-.collection("rounds")
-.orderBy("time","desc")
-.limit(1)
-.onSnapshot(async (snap) => {
+  .doc(lac)
+  .collection("rounds")
+  .orderBy("time","desc")
+  .limit(1)
+  .onSnapshot(async (snap) => {
 
-  // ❌ IGNORE DURING UPDATE
-  if (isUpdating) return;
+    console.log("📡 Snapshot received:", snap.size);
 
-  // ❌ NO DATA (after delete)
-  if (snap.empty) {
-    lastUpdateTime = 0;
+    // IGNORE DURING UPDATE
+    if (isUpdating) return;
 
-    img.src = "";
-    img.style.display = "none";
+    // ❗ NO DATA
+    if (snap.empty) {
+      loader.innerText = "📡 Waiting for first update...";
+      loader.style.display = "block";
+      img.style.display = "none";
+      return;
+    }
 
-    loader.innerText = "📡 Data will be updated soon...";
+    const data = snap.docs[0].data();
+
+    const newImage = data.fileData;
+    const newRound = data.round;
+    const newTime = data.time;
+
+    console.log("🆕 New Data:", data);
+
+    // IGNORE SAME UPDATE
+    if (newTime === lastUpdateTime) return;
+
+    isUpdating = true;
+    lastUpdateTime = newTime;
+
+    // SHOW OVERLAY
+    overlay.style.display = "flex";
+    updateText.innerText = `Updating Round ${newRound}`;
+
+    // PRELOAD IMAGE
+    const temp = new Image();
+    temp.src = newImage;
+
+    // COUNTDOWN
+    for (let i = 10; i >= 1; i--) {
+      countdown.innerText = i;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    // WAIT IMAGE LOAD
+    await new Promise(resolve => {
+      if (temp.complete) resolve();
+      else temp.onload = resolve;
+    });
+
+    // SHOW IMAGE
+    img.src = newImage;
+
+    overlay.style.display = "none";
+    img.style.display = "block";
+    img.classList.remove("show");
+
+    setTimeout(() => {
+      img.classList.add("show");
+      loader.style.display = "none";
+      isUpdating = false;
+    }, 100);
+
+  }, (error) => {
+    console.error("❌ Firestore Error:", error);
+    loader.innerText = "⚠️ Connection error";
     loader.style.display = "block";
-    return;
-  }
-
-  const doc = snap.docs[0];
-  const data = doc.data();
-
-  const newImage = data.fileData;
-  const newRound = data.round;
-  const newTime = data.time;
-
-  // ❌ IGNORE SAME UPDATE
-  if (newTime === lastUpdateTime) return;
-
-  // 🔒 LOCK
-  isUpdating = true;
-
-  // update tracker
-  lastUpdateTime = newTime;
-
-  // 🔴 SHOW OVERLAY
-  overlay.style.display = "flex";
-  updateText.innerText = `Updating Round ${newRound}`;
-
-  // 🔥 PRELOAD IMAGE FIRST
-  const temp = new Image();
-  temp.src = newImage;
-
-  // 🔥 COUNTDOWN (10 seconds)
-  for (let i = 10; i >= 1; i--) {
-    countdown.innerText = i;
-
-    await new Promise(requestAnimationFrame);
-    await new Promise(r => setTimeout(r, 1000));
-  }
-
-  // 🔥 WAIT IMAGE READY
-  await new Promise(resolve => {
-    if (temp.complete) resolve();
-    else temp.onload = resolve;
   });
-
-  // 🔥 UPDATE IMAGE
-  img.src = newImage;
-
-  overlay.style.display = "none";
-
-  img.style.display = "block";
-  img.classList.remove("show");
-
-  setTimeout(() => {
-    img.classList.add("show");
-    loader.style.display = "none";
-    isUpdating = false;
-  }, 100);
-
-});
 
 </script>
 
