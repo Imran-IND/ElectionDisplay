@@ -159,9 +159,9 @@ db.collection("lacData")
     temp.src = newImage;
 
     // COUNTDOWN
-    for (let i = 10; i >= 1; i--) {
+    for (let i = 5; i >= 1; i--) {
       countdown.innerText = i;
-      await new Promise(r => setTimeout(r, 5000));
+      await new Promise(r => setTimeout(r, 500));
     }
 
     // WAIT IMAGE LOAD
